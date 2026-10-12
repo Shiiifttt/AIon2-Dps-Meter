@@ -150,6 +150,12 @@
     font-variant-numeric: tabular-nums;
 }
 
+.s2-boss-ttk {
+    color: #a58a87;
+    font-weight: 500;
+    margin-left: 2px;
+}
+
 .s2-total-dps {
     color: #4adfc4;
     font-size: 17px;

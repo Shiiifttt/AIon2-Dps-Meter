@@ -31,6 +31,9 @@ namespace AionDpsMeter.UI.ViewModels
         public string ActiveTargetName = string.Empty;
         public string ActiveTargetHpDisplay = string.Empty;
         public double ActiveTargetHpPercentage;
+        public string TimeToKillDisplay = string.Empty;
+
+        private readonly TimeToKillEstimator timeToKill = new();
 
         public bool UpdateAvailable;
         public string UpdateVersionText = string.Empty;
@@ -96,11 +99,16 @@ namespace AionDpsMeter.UI.ViewModels
                 ActiveTargetName = targetInfo.Name;
                 ActiveTargetHpPercentage = targetInfo.HpTotal > 0 ? (double)targetInfo.HpCurrent / targetInfo.HpTotal * 100 : 0;
                 ActiveTargetHpDisplay = targetInfo.HpTotal > 0 ? $"{DamageFormatter.Format(targetInfo.HpCurrent)} / {DamageFormatter.Format(targetInfo.HpTotal)}" : string.Empty;
+
+                var ttk = timeToKill.Estimate(targetInfo.Id, targetInfo.HpCurrent, targetInfo.HpTotal, sessionManager.GetPartyDps(), DateTime.UtcNow);
+                TimeToKillDisplay = ttk is { } t ? $"~{(int)t.TotalMinutes}:{t.Seconds:00}" : string.Empty;
                 uiNeedsUpdate = true;
             }
             else if (HasActiveTarget)
             {
                 HasActiveTarget = false;
+                TimeToKillDisplay = string.Empty;
+                timeToKill.Reset();
                 uiNeedsUpdate = true;
             }
 

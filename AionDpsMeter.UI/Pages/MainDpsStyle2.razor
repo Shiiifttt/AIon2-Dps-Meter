@@ -33,7 +33,13 @@
             </div>
 
             <div class="s2-header-row-bottom">
-                <span class="s2-boss-hp">@ViewModel.ActiveTargetHpDisplay</span>
+                <span class="s2-boss-hp">
+                    @ViewModel.ActiveTargetHpDisplay
+                    @if (!string.IsNullOrEmpty(ViewModel.TimeToKillDisplay))
+                    {
+                        <span class="s2-boss-ttk" title="Estimated time to kill">· @ViewModel.TimeToKillDisplay</span>
+                    }
+                </span>
                 <span class="s2-total-dps">@ViewModel.TotalRaidDamageFormatted</span>
             </div>
 

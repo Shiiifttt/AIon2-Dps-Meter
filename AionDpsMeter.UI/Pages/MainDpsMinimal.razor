@@ -27,7 +27,13 @@
                     </div>
                 </div>
                 <div class="header-row header-row-bottom">
-                    <span class="boss-hp">@ViewModel.ActiveTargetHpDisplay</span>
+                    <span class="boss-hp">
+                        @ViewModel.ActiveTargetHpDisplay
+                        @if (!string.IsNullOrEmpty(ViewModel.TimeToKillDisplay))
+                        {
+                            <span class="boss-ttk" title="Estimated time to kill">· @ViewModel.TimeToKillDisplay</span>
+                        }
+                    </span>
                     <span class="total-dps">@ViewModel.TotalRaidDamageFormatted</span>
                 </div>
             </div>
