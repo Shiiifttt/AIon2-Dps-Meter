@@ -1,5 +1,7 @@
 # 🗡️ RATmeter - Aion 2 DPS Meter and Stat Efficiency Calculator
 
+*This fork is mostly for myself and friends*
+
 [![Latest Version](https://img.shields.io/github/v/tag/Kuroukihime/AIon2-Dps-Meter?label=latest%20version)](https://github.com/Kuroukihime/AIon2-Dps-Meter/tags)
 [![Server](https://img.shields.io/badge/server-Global-6f42c1)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows)](#)
