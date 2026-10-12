@@ -1,6 +1,7 @@
 ﻿using AionDpsMeter.Core.GameData.Services;
 using AionDpsMeter.Core.Models;
 using AionDpsMeter.Services.Services.Settings;
+using AionDpsMeter.Services.Services.Update;
 using AionDpsMeter.Core.Windowing;
 using AionDpsMeter.UI.Services.Windowing;
 using Microsoft.AspNetCore.Components;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Components.Web;
 
 namespace AionDpsMeter.UI.Pages
 {
-    partial class SettingsPage(IAppSettingsService settings, WindowHelper windowHelper, IWindowManagerService windowManager) : IDisposable
+    partial class SettingsPage(IAppSettingsService settings, WindowHelper windowHelper, IWindowManagerService windowManager, UpdateCheckerService updateChecker) : IDisposable
     {
         private List<Skill> AllSkills  => FilteredSkills();
 
@@ -18,6 +19,8 @@ namespace AionDpsMeter.UI.Pages
         private bool _developerExpanded;
         private string _activeGroup = "appearance";
         private string _version = "1.0.0";
+        private bool _checkingForUpdates;
+        private UpdateCheckResult? _lastUpdateCheck;
 
        
         private const int MaxTrackedBuffSkills = 10;
@@ -37,6 +40,7 @@ namespace AionDpsMeter.UI.Pages
         new("appearance", "Appearance", "&#9707;"),
         new("hotkeys", "Hotkeys", "&#9000;"),
         new("tracking", "Tracking", "&#9881;"),
+        new("updates", "Updates", "&#8635;"),
         new("overlays", "[BETA] Overlays", "&#9635;"),
     };
 
@@ -64,6 +68,28 @@ namespace AionDpsMeter.UI.Pages
         }
 
 
+
+        private string UpdateStatusText => _lastUpdateCheck?.Message
+            ?? (UpdateCheckerService.IsEnabled
+                ? "Nothing is checked automatically. You'll be asked before anything is installed."
+                : "Updates are turned off in this build.");
+
+        private async Task CheckForUpdatesAsync()
+        {
+            _checkingForUpdates = true;
+            try
+            {
+                _lastUpdateCheck = await updateChecker.CheckForUpdateAsync();
+            }
+            finally
+            {
+                _checkingForUpdates = false;
+            }
+
+            // The What's New window is the prompt: "Update Now" or close to decline.
+            if (_lastUpdateCheck.Status == UpdateCheckStatus.Available)
+                windowHelper.OpenWhatsNewWindow();
+        }
 
         private void SelectGroup(string id)
         {

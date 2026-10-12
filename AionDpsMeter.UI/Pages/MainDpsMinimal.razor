@@ -42,16 +42,6 @@
             </div>
         </div>
 
-        @if (ViewModel.UpdateAvailable)
-        {
-            <div class="update-module">
-                <div class="update-dot"></div>
-                <span class="update-text">@ViewModel.UpdateVersionText</span>
-                <button type="button" class="update-btn" @onclick="ViewModel.OpenWhatsNew">What's New</button>
-                <button type="button" class="update-close" @onclick="ViewModel.DismissUpdate">✕</button>
-            </div>
-        }
-
         <div class="players-list">
             @foreach (var player in ViewModel.Players)
             {

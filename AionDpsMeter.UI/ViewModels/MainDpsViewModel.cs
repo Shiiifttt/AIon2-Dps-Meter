@@ -1,6 +1,5 @@
 ﻿using AionDpsMeter.Services.Services.Session;
 using AionDpsMeter.Services.Services.Settings;
-using AionDpsMeter.Services.Services.Update;
 using AionDpsMeter.Core.Windowing;
 using AionDpsMeter.UI.Services.Windowing;
 using AionDpsMeter.UI.Utils;
@@ -13,7 +12,6 @@ namespace AionDpsMeter.UI.ViewModels
     {
         private readonly CombatSessionManager sessionManager;
         private readonly IAppSettingsService settingsService;
-        private readonly UpdateCheckerService updateChecker;
         private readonly IWindowManagerService windowManager;
         private readonly WindowHelper windowHelper;
 
@@ -35,9 +33,6 @@ namespace AionDpsMeter.UI.ViewModels
 
         private readonly TimeToKillEstimator timeToKill = new();
 
-        public bool UpdateAvailable;
-        public string UpdateVersionText = string.Empty;
-
         public double RowScale = 1.0;
 
         private readonly ConcurrentDictionary<string, string> _iconCache = new(StringComparer.OrdinalIgnoreCase);
@@ -47,11 +42,10 @@ namespace AionDpsMeter.UI.ViewModels
 
         private readonly Func<Task> onStateChanged;
 
-        public MainDpsViewModel(CombatSessionManager sessionManager, IAppSettingsService settingsService, UpdateCheckerService updateChecker, IWindowManagerService windowManager, WindowHelper windowHelper, Func<Task> onStateChanged)
+        public MainDpsViewModel(CombatSessionManager sessionManager, IAppSettingsService settingsService, IWindowManagerService windowManager, WindowHelper windowHelper, Func<Task> onStateChanged)
         {
             this.sessionManager = sessionManager;
             this.settingsService = settingsService;
-            this.updateChecker = updateChecker;
             this.windowManager = windowManager;
             this.windowHelper = windowHelper;
             this.onStateChanged = onStateChanged;
@@ -63,8 +57,6 @@ namespace AionDpsMeter.UI.ViewModels
             settingsService.SettingsChanged += OnSettingsChanged;
 
             RowScale = settingsService.PlayerRowScale > 0 ? settingsService.PlayerRowScale : 1.0;
-
-            _ = CheckForUpdatesAsync();
 
             _refreshTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(33));
             _ = UpdateLoopAsync();
@@ -192,17 +184,6 @@ namespace AionDpsMeter.UI.ViewModels
             }
         }
 
-        private async Task CheckForUpdatesAsync()
-        {
-            var release = await updateChecker.CheckForUpdateAsync();
-            if (release is not null)
-            {
-                UpdateVersionText = $"New version available: {release.Name}";
-                UpdateAvailable = true;
-                await onStateChanged.Invoke();
-            }
-        }
-
         private void OnPingUpdated(object? sender, int pingMs)
         {
             PingDisplay = $"{pingMs} ms";
@@ -258,12 +239,10 @@ namespace AionDpsMeter.UI.ViewModels
 
         public void OpenHistory() => windowHelper.OpenHistory();
         public void OpenStatEffCalc() => windowHelper.OpenStatEff();
-        public void OpenWhatsNew() => windowHelper.OpenWhatsNewWindow();
 
         public void OpenSettings() => windowHelper.OpenSettings();
         public void Minimize() => windowManager.Minimize(WindowKey.Main);
         public void Close() => windowManager.CloseApplication();
-        public void DismissUpdate() { UpdateAvailable = false; onStateChanged.Invoke(); }
         public void OpenPlayerDetails(PlayerRenderState player) => windowHelper.OpenPlayerDetails(player);
 
         public void Dispose()

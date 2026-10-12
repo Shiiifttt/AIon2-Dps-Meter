@@ -1,6 +1,5 @@
 ﻿@using AionDpsMeter.Services.Services.Session
 @using AionDpsMeter.Services.Services.Settings
-@using AionDpsMeter.Services.Services.Update
 @using AionDpsMeter.UI.Services.Windowing
 @using AionDpsMeter.UI.ViewModels
 @implements IDisposable
@@ -17,7 +16,6 @@ else
 @code {
     [Inject] private CombatSessionManager SessionManager { get; set; } = null!;
     [Inject] private IAppSettingsService SettingsService { get; set; } = null!;
-    [Inject] private UpdateCheckerService UpdateChecker { get; set; } = null!;
     [Inject] private IWindowManagerService WindowManager { get; set; } = null!;
     [Inject] private WindowHelper WindowHelper { get; set; } = null!;
 
@@ -27,7 +25,7 @@ else
 
     protected override void OnInitialized()
     {
-        viewModel = new MainDpsViewModel(SessionManager, SettingsService, UpdateChecker, WindowManager, WindowHelper, () => InvokeAsync(StateHasChanged));
+        viewModel = new MainDpsViewModel(SessionManager, SettingsService, WindowManager, WindowHelper, () => InvokeAsync(StateHasChanged));
         viewModel.Initialize();
     }
 

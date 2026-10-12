@@ -54,19 +54,6 @@
         </div>
 
         <!-- ============================================================
-         UPDATE BANNER
-         ============================================================ -->
-        @if (ViewModel.UpdateAvailable)
-        {
-            <div class="s2-update-module">
-                <div class="s2-update-dot"></div>
-                <span class="s2-update-text">@ViewModel.UpdateVersionText</span>
-                <button type="button" class="s2-update-btn" @onclick="ViewModel.OpenWhatsNew">What's New</button>
-                <button type="button" class="s2-update-close" @onclick="ViewModel.DismissUpdate">✕</button>
-            </div>
-        }
-
-        <!-- ============================================================
          PLAYER LIST
          ============================================================ -->
         <div class="s2-players-list">

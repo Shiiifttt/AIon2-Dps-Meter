@@ -621,3 +621,29 @@
         transition: none !important;
     }
 }
+
+/* ---------------- Updates ---------------- */
+
+.update-check-btn {
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--font-ui);
+    color: var(--text);
+    background: var(--accent-soft);
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+    .update-check-btn:hover:not(:disabled) {
+        border-color: var(--accent);
+    }
+
+    .update-check-btn:disabled {
+        color: var(--text-dim);
+        background: var(--panel);
+        cursor: default;
+    }

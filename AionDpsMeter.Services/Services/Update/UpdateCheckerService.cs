@@ -39,53 +39,60 @@ namespace AionDpsMeter.Services.Services.Update
         };
 
         /// <summary>
-        /// Returns the latest release if it is newer than the current assembly version and ships
-        /// a zip with a matching .sig asset, otherwise null.
+        /// Asks GitHub for the latest release of <see cref="Repository"/>. Only run when the user
+        /// presses "Check for updates"; a newer release is only reported as available when it
+        /// ships a zip with a matching .sig asset.
         /// </summary>
-        public async Task<ReleaseInfo?> CheckForUpdateAsync()
+        public async Task<UpdateCheckResult> CheckForUpdateAsync()
         {
-            if (!IsEnabled || string.IsNullOrEmpty(Repository)) return null;
+            if (!IsEnabled || string.IsNullOrEmpty(Repository))
+                return new UpdateCheckResult(UpdateCheckStatus.Disabled, "Updates are turned off in this build.");
 
+            GithubReleaseDto? dto;
             try
             {
-                var dto = await _httpClient.GetFromJsonAsync<GithubReleaseDto>(ReleasesApiUrl);
-                if (dto is null) return null;
-
-                var latestVersion  = ParseVersion(dto.TagName);
-                var currentVersion = Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(1, 0, 0, 0);
-
-                var latestCompare  = new Version(latestVersion.Major,  latestVersion.Minor,  latestVersion.Build);
-                var currentCompare = new Version(currentVersion.Major, currentVersion.Minor, currentVersion.Build);
-
-                if (latestCompare > currentCompare)
-                {
-                    // Unsigned releases are never offered; there is no source-zip fallback.
-                    var zip = dto.Assets?.FirstOrDefault(a =>
-                        a.Name?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) == true);
-                    var sig = zip is null ? null : dto.Assets?.FirstOrDefault(a =>
-                        string.Equals(a.Name, zip.Name + UpdateSigning.SignatureExtension, StringComparison.OrdinalIgnoreCase));
-
-                    if (string.IsNullOrEmpty(zip?.BrowserDownloadUrl) || string.IsNullOrEmpty(sig?.BrowserDownloadUrl))
-                        return null;
-
-                    LatestReleaseInfo = new ReleaseInfo
-                    {
-                        TagName      = dto.TagName ?? string.Empty,
-                        Name         = dto.Name    ?? dto.TagName ?? string.Empty,
-                        Body         = dto.Body    ?? string.Empty,
-                        HtmlUrl      = dto.HtmlUrl ?? string.Empty,
-                        ZipUrl       = zip.BrowserDownloadUrl,
-                        SignatureUrl = sig.BrowserDownloadUrl
-                    };
-                    return LatestReleaseInfo;
-                }
+                dto = await _httpClient.GetFromJsonAsync<GithubReleaseDto>(ReleasesApiUrl);
             }
-            catch
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-
+                return new UpdateCheckResult(UpdateCheckStatus.UpToDate, "No releases have been published yet.");
+            }
+            catch (Exception)
+            {
+                return new UpdateCheckResult(UpdateCheckStatus.Failed, "Couldn't reach GitHub. Check your connection and try again.");
             }
 
-            return null;
+            if (dto is null)
+                return new UpdateCheckResult(UpdateCheckStatus.Failed, "GitHub returned an empty response.");
+
+            var latestVersion  = ParseVersion(dto.TagName);
+            var currentVersion = Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(1, 0, 0, 0);
+
+            var latestCompare  = new Version(latestVersion.Major,  latestVersion.Minor,  latestVersion.Build);
+            var currentCompare = new Version(currentVersion.Major, currentVersion.Minor, currentVersion.Build);
+
+            if (latestCompare <= currentCompare)
+                return new UpdateCheckResult(UpdateCheckStatus.UpToDate, $"You're on the latest version (v{currentCompare}).");
+
+            // Unsigned releases are never offered; there is no source-zip fallback.
+            var zip = dto.Assets?.FirstOrDefault(a =>
+                a.Name?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) == true);
+            var sig = zip is null ? null : dto.Assets?.FirstOrDefault(a =>
+                string.Equals(a.Name, zip.Name + UpdateSigning.SignatureExtension, StringComparison.OrdinalIgnoreCase));
+
+            if (string.IsNullOrEmpty(zip?.BrowserDownloadUrl) || string.IsNullOrEmpty(sig?.BrowserDownloadUrl))
+                return new UpdateCheckResult(UpdateCheckStatus.Failed, $"{dto.TagName} is out, but it isn't signed, so it won't be installed.");
+
+            LatestReleaseInfo = new ReleaseInfo
+            {
+                TagName      = dto.TagName ?? string.Empty,
+                Name         = dto.Name    ?? dto.TagName ?? string.Empty,
+                Body         = dto.Body    ?? string.Empty,
+                HtmlUrl      = dto.HtmlUrl ?? string.Empty,
+                ZipUrl       = zip.BrowserDownloadUrl,
+                SignatureUrl = sig.BrowserDownloadUrl
+            };
+            return new UpdateCheckResult(UpdateCheckStatus.Available, $"{LatestReleaseInfo.Name} is available.", LatestReleaseInfo);
         }
 
         /// <summary>
