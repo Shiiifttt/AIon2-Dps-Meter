@@ -68,7 +68,7 @@ namespace AionDpsMeter.UI
                 ProgressPanel.Visibility = Visibility.Collapsed;
                 SetStatus("Launching updater...", "#A5D6A7");
 
-                LaunchUpdater(zipPath);
+                LaunchUpdater(zipPath, _release.TagName);
 
                 await Task.Delay(800);
                 Application.Current.Dispatcher.Invoke(() =>
@@ -94,19 +94,25 @@ namespace AionDpsMeter.UI
             }
         }
 
-        private void LaunchUpdater(string zipPath)
+        private void LaunchUpdater(string zipPath, string tag)
         {
-            var exeDir     = AppContext.BaseDirectory;
+            if (!UpdateCheckerService.IsEnabled)
+                throw new InvalidOperationException("Updater is disabled.");
+
+            var exeDir    = AppContext.BaseDirectory;
             var updaterExe = Path.Combine(exeDir, "AionDpsMeter.Updater.exe");
             var mainExe    = Path.GetFileName(Environment.ProcessPath ?? "AionDpsMeter.exe");
             var pid        = Environment.ProcessId;
 
-            Process.Start(new ProcessStartInfo(updaterExe)
+            var startInfo = new ProcessStartInfo(updaterExe)
             {
-                Arguments       = $"\"{zipPath}\" \"{exeDir.TrimEnd('\\')}\" \"{mainExe}\" {pid}",
                 UseShellExecute = false,
                 CreateNoWindow  = false
-            });
+            };
+            foreach (var arg in new[] { zipPath, exeDir.TrimEnd('\\'), mainExe, pid.ToString(), tag })
+                startInfo.ArgumentList.Add(arg);
+
+            Process.Start(startInfo);
         }
 
         private void SetStatus(string text, string hexColor)

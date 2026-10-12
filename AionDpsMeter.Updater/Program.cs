@@ -1,17 +1,20 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO.Compression;
+using AionDpsMeter.Services.Services.Update;
 
-// Args: <zipPath> <targetDir> <mainExeName> <mainPid>
-if (args.Length < 4)
+// Args: <zipPath> <targetDir> <mainExeName> <mainPid> <tag>
+if (args.Length < 5)
 {
-    Console.Error.WriteLine("Usage: AionDpsMeter.Updater <zipPath> <targetDir> <mainExeName> <mainPid>");
+    Console.Error.WriteLine("Usage: AionDpsMeter.Updater <zipPath> <targetDir> <mainExeName> <mainPid> <tag>");
     return 1;
 }
 
 var zipPath    = args[0];
-var targetDir  = args[1];
+var targetDir  = Path.GetFullPath(args[1]);
 var mainExe    = args[2];
 var mainPid    = int.Parse(args[3]);
+var tag        = args[4];
+var sigPath    = zipPath + UpdateSigning.SignatureExtension;
 
 try
 {
@@ -29,6 +32,16 @@ catch (ArgumentException)
 
 await Task.Delay(500);
 
+// Re-check here too: the zip sat on disk between download and now.
+if (!File.Exists(sigPath) || !UpdateSigning.Verify(zipPath, tag, File.ReadAllBytes(sigPath)))
+{
+    Console.Error.WriteLine("Update rejected: signature check failed. Nothing was changed.");
+    Cleanup();
+    Relaunch();
+    return 3;
+}
+
+var targetRoot = targetDir.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 
 try
 {
@@ -57,7 +70,14 @@ try
         if (fileName.Equals("AionDpsMeter.Updater.exe", StringComparison.OrdinalIgnoreCase))
             continue;
 
-        var destPath = Path.Combine(targetDir, relativePath);
+        // Never write outside the install folder ("../" or rooted entry names).
+        var destPath = Path.GetFullPath(Path.Combine(targetDir, relativePath));
+        if (!destPath.StartsWith(targetRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine($"Skipping entry outside install folder: {entry.FullName}");
+            continue;
+        }
+
         Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
         entry.ExtractToFile(destPath, overwrite: true);
     }
@@ -65,13 +85,23 @@ try
 catch (Exception ex)
 {
     Console.Error.WriteLine($"Extraction failed: {ex.Message}");
+    Relaunch();
     return 2;
 }
 
-try { File.Delete(zipPath); } catch {  }
-
-var exePath = Path.Combine(targetDir, mainExe);
-if (File.Exists(exePath))
-    Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = true });
-
+Cleanup();
+Relaunch();
 return 0;
+
+void Cleanup()
+{
+    try { File.Delete(zipPath); } catch {  }
+    try { File.Delete(sigPath); } catch {  }
+}
+
+void Relaunch()
+{
+    var exePath = Path.Combine(targetDir, mainExe);
+    if (File.Exists(exePath))
+        Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = true });
+}

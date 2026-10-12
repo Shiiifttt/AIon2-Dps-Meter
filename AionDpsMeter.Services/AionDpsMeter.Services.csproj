@@ -6,9 +6,27 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- GitHub "owner/repo" the app checks for signed releases (see release.ps1) -->
+  <PropertyGroup>
+    <UpdateRepository Condition="'$(UpdateRepository)' == ''">Shiiifttt/AIon2-Dps-Meter</UpdateRepository>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>UpdateRepository</_Parameter1>
+      <_Parameter2>$(UpdateRepository)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!-- dotnet build/publish -p:DisableUpdater=true compiles out update checks and downloads -->
+  <PropertyGroup Condition="'$(DisableUpdater)' == 'true'">
+    <DefineConstants>$(DefineConstants);DISABLE_UPDATER</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
+    <!-- Override transitive 2.1.11 (bundled SQLite < 3.50.2, CVE-2025-6965 / GHSA-2m69-gcr7-jv3q) -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
     <PackageReference Include="PacketDotNet" Version="1.4.7" />
     <PackageReference Include="SharpPcap" Version="6.3.0" />
