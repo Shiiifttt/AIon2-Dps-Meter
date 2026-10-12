@@ -33,6 +33,10 @@
                         {
                             <span class="boss-ttk" title="Estimated time to kill">· @ViewModel.TimeToKillDisplay</span>
                         }
+                        @if (ViewModel.FrenzyBeforeKill)
+                        {
+                            <FrenzyWarningIcon Tooltip="@ViewModel.FrenzyWarningTooltip" />
+                        }
                     </span>
                     <span class="total-dps">@ViewModel.TotalRaidDamageFormatted</span>
                 </div>
@@ -45,7 +49,7 @@
         <div class="players-list">
             @foreach (var player in ViewModel.Players)
             {
-                <div class="player-module @ViewModel.GetIsUserClass(player)" @onclick="() => ViewModel.OpenPlayerDetails(player)">
+                <div class="player-module @ViewModel.GetIsUserClass(player) @(ViewModel.ShowBreakBars ? "has-break" : string.Empty)" @onclick="() => ViewModel.OpenPlayerDetails(player)">
                     <div class="progress-bar @ViewModel.GetPlayerRowClass(player)" style="width:@($"{ViewModel.ClampPercent(player.EffectivePercentage).ToString("0.##", CultureInfo.InvariantCulture)}%")"></div>
                     <div class="player-data">
                         <div class="icon-wrap">
@@ -62,6 +66,12 @@
                         <div class="damage">@player.TotalDamageFormatted (@($"{player.DamagePercentage:F1}%"))</div>
                         <div class="dps">@player.DpsFormatted<span class="sub">/s</span></div>
                     </div>
+                    @if (ViewModel.ShowBreakBars)
+                    {
+                        <div class="break-track" title="@player.BreakTooltip">
+                            <div class="break-fill" style="width:@($"{ViewModel.ClampPercent(player.VisualBreakPercentage).ToString("0.##", CultureInfo.InvariantCulture)}%")"></div>
+                        </div>
+                    }
                 </div>
             }
         </div>

@@ -8,6 +8,8 @@ namespace AionDpsMeter.UI.ViewModels.History
     public sealed class HistoryPlayerViewModel : ViewModelBase
     {
         private readonly PlayerStats _stats;
+        private readonly double? _bestUptimeForClass;
+        private readonly double _partyBreak;
         private readonly IAppSettingsService _settingsService;
 
         public long    PlayerId              => _stats.PlayerId;
@@ -50,6 +52,11 @@ namespace AionDpsMeter.UI.ViewModels.History
         public string  PerfectRateDisplay    => DamageFormatter.FormatRate(_stats.PerfectRate);
         public string  DoubleDamageRateDisplay   => DamageFormatter.FormatRate(_stats.DoubleDamageRate);
         public string  ParryRateDisplay      => DamageFormatter.FormatRate(_stats.ParryRate);
+        public string  TotalBreakDisplay     => _stats.TotalBreak.ToString("0.#");
+        public string  BreakShareDisplay     => _partyBreak > 0 ? DamageFormatter.FormatRate(_stats.TotalBreak / _partyBreak * 100) : string.Empty;
+        public string  UptimeDisplay         => UptimeFormatter.Display(_stats);
+        public string  UptimeTooltip         => $"{UptimeFormatter.Tooltip(_stats, _bestUptimeForClass)}{Environment.NewLine}In combat {DurationDisplay}";
+        public string  IdleDisplay           => _stats.UptimePercentage is null ? string.Empty : $"idle {UptimeFormatter.FormatIdle(_stats.IdleSeconds)}";
         public string  DurationDisplay       => DamageFormatter.FormatDuration(_stats.CombatDuration);
         public int     HitCount              => _stats.HitCount;
 
@@ -68,9 +75,13 @@ namespace AionDpsMeter.UI.ViewModels.History
             IReadOnlyCollection<BuffStats> buffs,
             IReadOnlyList<PlayerDamage> rawHits,
             IReadOnlyList<BuffEvent> rawBuffEvents,
-            IAppSettingsService settingsService)
+            IAppSettingsService settingsService,
+            double? bestUptimeForClass = null,
+            double partyBreak = 0)
         {
             _stats           = stats;
+            _bestUptimeForClass = bestUptimeForClass;
+            _partyBreak      = partyBreak;
             _settingsService = settingsService;
             RawHits          = rawHits;
             RawBuffEvents    = rawBuffEvents;

@@ -303,6 +303,23 @@
 
 
 
+/* ---- break bar: share of the boss stagger gauge since its last break ---- */
+
+.s2-break-track {
+    position: relative;
+    z-index: 2;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.04);
+    border-top: 1px solid rgba(0, 0, 0, 0.45);
+}
+
+.s2-break-fill {
+    height: 100%;
+    background: linear-gradient( 90deg, rgba(94, 53, 177, 0.5) 0%, rgba(179, 136, 255, 0.95) 100% );
+    box-shadow: inset -2px 0 3px rgba(255, 255, 255, 0.4);
+    transition: width 0.12s linear;
+}
+
 .s2-row-shine {
     position: absolute;
     inset: 0;

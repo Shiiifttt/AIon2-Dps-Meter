@@ -20,9 +20,16 @@ namespace AionDpsMeter.UI.ViewModels.History
 
         public IReadOnlyList<HistoryPlayerViewModel> Players { get; }
 
-        public HistorySessionViewModel(HistorySessionSnapshot snapshot, IAppSettingsService settingsService)
+        // Stagger gauge taken off the boss by the whole party (0 for bosses without a gauge or older fights).
+        public double TotalBreak { get; }
+        public bool   HasBreak => TotalBreak > 0;
+        public string TotalBreakDisplay => TotalBreak.ToString("0");
+
+        /// <param name="bestUptimeForClass">Best saved uptime on this boss for a class id, if any.</param>
+        public HistorySessionViewModel(HistorySessionSnapshot snapshot, IAppSettingsService settingsService, Func<int, double?>? bestUptimeForClass = null)
         {
-            _snapshot = snapshot;     
+            _snapshot = snapshot;
+            TotalBreak = snapshot.PlayerStats.Sum(p => p.TotalBreak);
             Players = snapshot.PlayerStats.Where(r => r.IsIdentified || r.DamagePercentage > 1)
                 .OrderByDescending(p => p.TotalDamage)
                 .Select(p => new HistoryPlayerViewModel(
@@ -31,7 +38,9 @@ namespace AionDpsMeter.UI.ViewModels.History
                     snapshot.BuffStatsByPlayer.TryGetValue(p.PlayerId, out var buffs) ? buffs : [],
                     snapshot.HitsByPlayer.TryGetValue(p.PlayerId, out var hits) ? hits : [],
                     snapshot.BuffEventsByPlayer.TryGetValue(p.PlayerId, out var buffEvts) ? buffEvts : [],
-                    settingsService))
+                    settingsService,
+                    bestUptimeForClass?.Invoke(p.ClassId),
+                    TotalBreak))
                 .ToList();
         }
     }

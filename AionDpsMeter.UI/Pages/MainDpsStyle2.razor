@@ -39,6 +39,10 @@
                     {
                         <span class="s2-boss-ttk" title="Estimated time to kill">· @ViewModel.TimeToKillDisplay</span>
                     }
+                    @if (ViewModel.FrenzyBeforeKill)
+                    {
+                        <FrenzyWarningIcon Tooltip="@ViewModel.FrenzyWarningTooltip" />
+                    }
                 </span>
                 <span class="s2-total-dps">@ViewModel.TotalRaidDamageFormatted</span>
             </div>
@@ -98,6 +102,12 @@
                                     <div class="s2-damage-line">@player.TotalDamageFormatted</div>
                                 </div>
                             </div>
+                            @if (ViewModel.ShowBreakBars)
+                            {
+                                <div class="s2-break-track" title="@player.BreakTooltip">
+                                    <div class="s2-break-fill" style="width:@(ViewModel.ClampPercent(player.VisualBreakPercentage).ToString("0.##", CultureInfo.InvariantCulture))%"></div>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>

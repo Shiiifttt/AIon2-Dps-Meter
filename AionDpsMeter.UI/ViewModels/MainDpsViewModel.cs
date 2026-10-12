@@ -30,8 +30,12 @@ namespace AionDpsMeter.UI.ViewModels
         public string ActiveTargetHpDisplay = string.Empty;
         public double ActiveTargetHpPercentage;
         public string TimeToKillDisplay = string.Empty;
+        public bool FrenzyBeforeKill;
+        public string FrenzyWarningTooltip = string.Empty;
+        public bool ShowBreakBars;
 
         private readonly TimeToKillEstimator timeToKill = new();
+        private int staggerMax;
 
         public double RowScale = 1.0;
 
@@ -93,13 +97,24 @@ namespace AionDpsMeter.UI.ViewModels
                 ActiveTargetHpDisplay = targetInfo.HpTotal > 0 ? $"{DamageFormatter.Format(targetInfo.HpCurrent)} / {DamageFormatter.Format(targetInfo.HpTotal)}" : string.Empty;
 
                 var ttk = timeToKill.Estimate(targetInfo.Id, targetInfo.HpCurrent, targetInfo.HpTotal, sessionManager.GetPartyDps(), DateTime.UtcNow);
-                TimeToKillDisplay = ttk is { } t ? $"~{(int)t.TotalMinutes}:{t.Seconds:00}" : string.Empty;
+                TimeToKillDisplay = ttk is { } t ? $"~{FormatMinutes(t)}" : string.Empty;
+
+                var untilFrenzy = targetInfo.FrenzyAtUtc - DateTime.UtcNow;
+                FrenzyBeforeKill = ttk is { } kill && untilFrenzy is { } frenzy && frenzy > TimeSpan.Zero && kill > frenzy;
+                FrenzyWarningTooltip = FrenzyBeforeKill
+                    ? $"Boss will frenzy before it dies: frenzy in {FormatMinutes(untilFrenzy!.Value)}, kill in ~{FormatMinutes(ttk!.Value)}"
+                    : string.Empty;
+
+                ShowBreakBars = settingsService.ShowBreakBars && targetInfo.StaggerMax > 0;
+                staggerMax = targetInfo.StaggerMax;
                 uiNeedsUpdate = true;
             }
             else if (HasActiveTarget)
             {
                 HasActiveTarget = false;
                 TimeToKillDisplay = string.Empty;
+                FrenzyBeforeKill = false;
+                ShowBreakBars = false;
                 timeToKill.Reset();
                 uiNeedsUpdate = true;
             }
@@ -163,6 +178,13 @@ namespace AionDpsMeter.UI.ViewModels
                 player.EffectivePercentage = useRelativeBar
                     ? player.VisualRelativePercentage
                     : player.VisualAbsolutePercentage;
+
+                // Snaps down when the gauge breaks and the cycle restarts, eases on the way up.
+                double targetBreak = staggerMax > 0 ? stat.CycleBreak / staggerMax * 100.0 : 0;
+                double diffBreak = targetBreak - player.VisualBreakPercentage;
+                if (diffBreak < 0 || Math.Abs(diffBreak) < 0.05) player.VisualBreakPercentage = targetBreak;
+                else player.VisualBreakPercentage += diffBreak * 0.25;
+                player.BreakTooltip = $"Break: {stat.CycleBreak:0.#} this gauge, {stat.TotalBreak:0.#} total";
 
                 uiNeedsUpdate = true;
             }
@@ -230,6 +252,8 @@ namespace AionDpsMeter.UI.ViewModels
         //public string GetProgressClass(PlayerRenderState player) => $"dps-class-{player.ClassId}";
         public string GetCombatScoreDisplay(PlayerRenderState player) => (string.IsNullOrWhiteSpace(player.CombatPower) || player.CombatPower == "0") ? "" : player.CombatPower;
         public double ClampPercent(double value) => Math.Max(0, Math.Min(100, value));
+
+        private static string FormatMinutes(TimeSpan t) => $"{(int)t.TotalMinutes}:{t.Seconds:00}";
 
         public string GetRowScaleStyle() => RowScale != 1.0
             ? $"zoom:{RowScale.ToString(System.Globalization.CultureInfo.InvariantCulture)};"

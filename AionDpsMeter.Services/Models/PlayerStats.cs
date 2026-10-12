@@ -23,6 +23,13 @@
         public int ParryHits { get; set; }
         public double DamagePerSecond { get; set; }
         public double DamagePercentage { get; set; }
+        // Stagger gauge taken off the target: whole fight, and since the last stagger.
+        public double TotalBreak { get; set; }
+        public double CycleBreak { get; set; }
+        // Damage uptime against the time anyone in the party was hitting. Null for fights saved before uptime existed.
+        public double? UptimePercentage { get; set; }
+        public double ActiveSeconds { get; set; }
+        public double IdleSeconds { get; set; }
         public DateTime FirstHit { get; set; }
         public DateTime LastHit { get; set; }
 

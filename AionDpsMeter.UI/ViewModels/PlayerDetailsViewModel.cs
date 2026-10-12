@@ -54,6 +54,9 @@ namespace AionDpsMeter.UI.ViewModels
         [ObservableProperty] private string _doubleDamageRateDisplay = "0%";
         [ObservableProperty] private string _parryRateDisplay = "0%";
         [ObservableProperty] private string _damageContributionDisplay = "0%";
+        [ObservableProperty] private string _totalBreakDisplay = "0";
+        [ObservableProperty] private string _uptimeDisplay = "\u2014";
+        [ObservableProperty] private string _uptimeTooltip = string.Empty;
         [ObservableProperty] private string _combatDurationDisplay = "00:00";
         [ObservableProperty] private int _skillCount;
         [ObservableProperty] private int _buffCount;
@@ -159,6 +162,9 @@ namespace AionDpsMeter.UI.ViewModels
             vm.DoubleDamageRateDisplay   = player.DoubleDamageRateDisplay;
             vm.ParryRateDisplay          = player.ParryRateDisplay;
             vm.DamageContributionDisplay = player.DamagePercentDisplay;
+            vm.TotalBreakDisplay         = player.TotalBreakDisplay;
+            vm.UptimeDisplay             = string.IsNullOrEmpty(player.IdleDisplay) ? player.UptimeDisplay : $"{player.UptimeDisplay} ({player.IdleDisplay})";
+            vm.UptimeTooltip             = player.UptimeTooltip;
             vm.CombatDurationDisplay     = player.DurationDisplay;
 
             vm.HasActiveTarget  = !string.IsNullOrEmpty(targetName);
@@ -298,6 +304,12 @@ namespace AionDpsMeter.UI.ViewModels
                 DoubleDamageRateDisplay   = DamageFormatter.FormatRate(playerStats.DoubleDamageRate);
                 ParryRateDisplay          = DamageFormatter.FormatRate(playerStats.ParryRate);
                 DamageContributionDisplay = DamageFormatter.FormatRate(playerStats.DamagePercentage);
+                TotalBreakDisplay         = playerStats.TotalBreak.ToString("0.#");
+                UptimeDisplay             = playerStats.UptimePercentage is null
+                    ? UptimeFormatter.Display(playerStats)
+                    : $"{UptimeFormatter.Display(playerStats)} (idle {UptimeFormatter.FormatIdle(playerStats.IdleSeconds)})";
+                UptimeTooltip             = UptimeFormatter.Tooltip(playerStats,
+                    _sessionManager.GetActiveTargetInfo() is { } target ? _sessionManager.GetBestUptime(target.Name, playerStats.ClassId) : null);
                 CombatDurationDisplay     = DamageFormatter.FormatDuration(playerStats.CombatDuration);
                 if (playerStats.CombatPower > 0)
                     CombatPower = DamageFormatter.Format(playerStats.CombatPower);

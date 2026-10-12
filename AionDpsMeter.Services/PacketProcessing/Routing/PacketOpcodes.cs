@@ -17,4 +17,7 @@ public static class PacketOpcodes
     public const ushort PartyInfo = 0x9702;           // 02 97
     public const ushort EntityDeath = 0x8D04;         // 04 8D
     public const ushort SkillCd = 0x3847;             // 47 38
+    public const ushort KeepAlive = 0x3600;           // 00 36
+    public const ushort StaggerGauge = 0xE005;        // 05 E0
+    public const ushort CombatState = 0x8D21;         // 21 8D
 }

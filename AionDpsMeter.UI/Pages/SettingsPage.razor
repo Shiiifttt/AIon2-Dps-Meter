@@ -121,6 +121,12 @@
                 </ValueSlot>
             </SettingRow>
 
+            <SettingRow Title="Show Break Bars" Description="Purple bar under each row: share of the boss stagger gauge since its last break">
+                <ValueSlot>
+                    <ToggleSwitch Checked="settings.ShowBreakBars" CheckedChanged="v => { settings.ShowBreakBars = v; }" />
+                </ValueSlot>
+            </SettingRow>
+
             <SettingRow Title="Hide Player Names" Description="Replace names with obfuscated names — useful before sharing screenshots" IsLast="true">
                 <ValueSlot>
                     <ToggleSwitch Checked="settings.IsNicknameHidden" CheckedChanged="v => { settings.IsNicknameHidden = v; }" />

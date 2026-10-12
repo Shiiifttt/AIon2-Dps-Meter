@@ -154,6 +154,19 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
             };
         }
 
+        public IReadOnlyList<PlayerStats> GetPlayerStatsForTarget(string targetName)
+        {
+            using var db = _dbContextFactory.CreateDbContext();
+
+            return db.Sessions
+                .AsNoTracking()
+                .Where(x => x.TargetName == targetName)
+                .Select(x => x.PlayerStatsJson)
+                .AsEnumerable()
+                .SelectMany(json => DeserializeOrDefault<List<PlayerStats>>(json) ?? [])
+                .ToList();
+        }
+
         private static T? DeserializeOrDefault<T>(string json)
         {
             if (string.IsNullOrWhiteSpace(json)) return default;

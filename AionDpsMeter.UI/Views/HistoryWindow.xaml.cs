@@ -56,7 +56,8 @@ namespace AionDpsMeter.UI
 
                 var sessionWindow = new HistorySessionWindow(_settingsService)
                 {
-                    DataContext = new HistorySessionViewModel(snapshot, _settingsService),
+                    DataContext = new HistorySessionViewModel(snapshot, _settingsService,
+                        classId => _sessionManager.GetBestUptime(snapshot.TargetName, classId)),
                     Owner = this
                 };
 

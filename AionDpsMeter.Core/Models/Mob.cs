@@ -10,6 +10,13 @@ namespace AionDpsMeter.Core.Models
         public int MobCode { get; set; }
         public long HpTotal { get; set; }
         public long HpCurrent { get; set; }
+
+        // Stagger (break) gauge as last reported by the server; StaggerMax is 0 until the first update.
+        public int StaggerMax { get; set; }
+        public int StaggerCurrent { get; set; }
+
+        // When the boss frenzies (enrages), in local UTC. Set once at the pull, cleared when it leaves combat.
+        public DateTime? FrenzyAtUtc { get; set; }
         //public new string Name => GetMobName();
         //public bool IsBoss => CanBeBoss();
 

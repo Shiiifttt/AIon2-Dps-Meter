@@ -1,0 +1,30 @@
+/* Boss will frenzy before the estimated kill. Same weight as the header glyphs, flashing amber/red. */
+.frenzy-warning {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: -2px;
+    margin-left: 4px;
+    width: 12px;
+    height: 12px;
+    color: #ffb300;
+    filter: drop-shadow(0 0 3px rgba(255, 82, 82, 0.7));
+    animation: frenzy-flash 0.9s ease-in-out infinite;
+    cursor: help;
+}
+
+    .frenzy-warning svg {
+        width: 100%;
+        height: 100%;
+    }
+
+@keyframes frenzy-flash {
+    0%, 100% {
+        color: #ffb300;
+        opacity: 1;
+    }
+
+    50% {
+        color: #ff5252;
+        opacity: 0.35;
+    }
+}

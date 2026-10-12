@@ -7,8 +7,8 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=h:HistorySessionViewModel}"
         Title="Session Stats"
-        Height="340" Width="740"
-        MinHeight="340" MinWidth="740"
+        Height="340" Width="800"
+        MinHeight="340" MinWidth="800"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -123,6 +123,13 @@
                                     <Run Text="{Binding Duration, Mode=OneWay}" Foreground="{StaticResource DpsColorBrush}" FontWeight="Bold"/>
                                 </TextBlock>
                             </Border>
+                            <Border Style="{StaticResource TitleMetaPillStyle}"
+                                    Visibility="{Binding HasBreak, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock FontSize="10">
+                                    <Run Text="Break " Foreground="{StaticResource SecondaryTextBrush}"/>
+                                    <Run Text="{Binding TotalBreakDisplay, Mode=OneWay}" Foreground="#B388FF" FontWeight="Bold"/>
+                                </TextBlock>
+                            </Border>
                         </WrapPanel>
                     </StackPanel>
 
@@ -153,6 +160,7 @@
                         <ColumnDefinition Width="64"/>
                         <ColumnDefinition Width="74"/>
                         <ColumnDefinition Width="64"/>
+                        <ColumnDefinition Width="64"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}"/>
                     <TextBlock Grid.Column="1" Text="Player" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" Margin="8,0,0,0"/>
@@ -162,7 +170,8 @@
                     <TextBlock Grid.Column="5" Text="Back%" FontSize="10" FontWeight="Bold" Foreground="{StaticResource BackAttackColorBrush}" HorizontalAlignment="Center"/>
                     <TextBlock Grid.Column="6" Text="x2%" FontSize="10" FontWeight="Bold" Foreground="{StaticResource DoubleDamageColorBrush}" HorizontalAlignment="Center"/>
                     <TextBlock Grid.Column="7" Text="Uptime" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Center"/>
-                    <TextBlock Grid.Column="8" Text="Share" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Right"/>
+                    <TextBlock Grid.Column="8" Text="Break" FontSize="10" FontWeight="Bold" Foreground="#B388FF" HorizontalAlignment="Center"/>
+                    <TextBlock Grid.Column="9" Text="Share" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Right"/>
                 </Grid>
             </Border>
 
@@ -247,6 +256,7 @@
                                         <ColumnDefinition Width="64"/>
                                         <ColumnDefinition Width="64"/>
                                         <ColumnDefinition Width="74"/>
+                                        <ColumnDefinition Width="64"/>
                                         <ColumnDefinition Width="64"/>
                                     </Grid.ColumnDefinitions>
 
@@ -333,16 +343,40 @@
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center"/>
 
-                                    <!-- Duration -->
-                                    <TextBlock Grid.Column="7"
-                                               Text="{Binding DurationDisplay}"
-                                               FontSize="10" FontFamily="Consolas"
-                                               Foreground="{StaticResource SecondaryTextBrush}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"/>
+                                    <!-- Uptime: % of the time anyone was hitting the boss, idle seconds below -->
+                                    <StackPanel Grid.Column="7"
+                                                Orientation="Vertical"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Background="Transparent"
+                                                ToolTip="{Binding UptimeTooltip}">
+                                        <TextBlock Text="{Binding UptimeDisplay}"
+                                                   FontSize="10.5"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                                   HorizontalAlignment="Center"/>
+                                        <TextBlock Text="{Binding IdleDisplay}"
+                                                   FontSize="9"
+                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                   HorizontalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <!-- Break: total, share of the party's break below -->
+                                    <StackPanel Grid.Column="8"
+                                                Orientation="Vertical"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding TotalBreakDisplay}"
+                                                   FontSize="10.5"
+                                                   Foreground="#B388FF"
+                                                   HorizontalAlignment="Center"/>
+                                        <TextBlock Text="{Binding BreakShareDisplay}"
+                                                   FontSize="9"
+                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                   HorizontalAlignment="Center"/>
+                                    </StackPanel>
 
                                     <!-- Share % -->
-                                    <TextBlock Grid.Column="8"
+                                    <TextBlock Grid.Column="9"
                                                Text="{Binding DamagePercentDisplay}"
                                                FontSize="10.5" FontWeight="Bold"
                                                Foreground="{StaticResource AccentBrush}"

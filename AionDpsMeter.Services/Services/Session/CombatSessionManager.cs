@@ -25,6 +25,7 @@ namespace AionDpsMeter.Services.Services.Session
         private readonly List<BuffEvent> activeBuffBacklog = new();
         private readonly ITimedEventTracker buffEventTracker;
         private readonly ITimedEventTracker skillCdEventTracker;
+        private readonly BreakAttributor breakAttributor = new();
 
 
         public CombatSessionManager(
@@ -294,6 +295,32 @@ namespace AionDpsMeter.Services.Services.Session
             }
         }
 
+        public void ProcessStaggerGauge(int targetId, int current, int max, bool broken, DateTime at)
+        {
+            try
+            {
+                lock (lockObject)
+                {
+                    var mob = entityTracker.GetOrCreateTargetEntity(targetId);
+
+                    // First update we see: the gauge starts full.
+                    int previous = mob.StaggerMax > 0 ? mob.StaggerCurrent : max;
+                    if (!broken) mob.StaggerMax = max;
+                    mob.StaggerCurrent = broken ? 0 : current;
+
+                    if (!targetEntries.TryGetValue(targetId, out var entry) || entry.CurrentSession is not { } session)
+                        return;
+
+                    session.ApplyStaggerDrop(previous - mob.StaggerCurrent, at, gaugeWasDropping: previous > 0, breakAttributor);
+                    if (broken) session.RegisterStagger(at);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error processing stagger gauge");
+            }
+        }
+
         public void RegisterSkillCdEvent(TimedEvent skillCdEvent)
         {
             skillCdEventTracker.Register(skillCdEvent);
@@ -368,8 +395,61 @@ namespace AionDpsMeter.Services.Services.Session
             }
         }
 
+        /// <summary>
+        /// Best uptime any player of this class has had against this boss in saved fights
+        /// (yours and anyone you've been in a party with). Fights shorter than a minute don't count.
+        /// </summary>
+        public double? GetBestUptime(string targetName, int classId)
+        {
+            lock (lockObject)
+            {
+                var byClass = GetBestUptimeByClass(targetName);
+                return byClass.TryGetValue(classId, out var best) ? best : null;
+            }
+        }
+
+        private static readonly TimeSpan MinUptimeBenchmarkFight = TimeSpan.FromMinutes(1);
+        private readonly Dictionary<string, Dictionary<int, double>> bestUptimeByTarget = new();
+
+        private Dictionary<int, double> GetBestUptimeByClass(string targetName)
+        {
+            if (bestUptimeByTarget.TryGetValue(targetName, out var byClass)) return byClass;
+
+            byClass = new Dictionary<int, double>();
+            try
+            {
+                MergeBestUptime(byClass, historyStore.GetPlayerStatsForTarget(targetName));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to load uptime history for {Target}", targetName);
+            }
+            bestUptimeByTarget[targetName] = byClass;
+            return byClass;
+        }
+
+        private static void MergeBestUptime(Dictionary<int, double> byClass, IEnumerable<PlayerStats> stats)
+        {
+            foreach (var s in stats)
+            {
+                if (s.UptimePercentage is not { } uptime || s.ClassId <= 0) continue;
+                if (TimeSpan.FromSeconds(s.ActiveSeconds + s.IdleSeconds) < MinUptimeBenchmarkFight) continue;
+                if (!byClass.TryGetValue(s.ClassId, out var best) || uptime > best) byClass[s.ClassId] = uptime;
+            }
+        }
+
         private void OnSessionCompleted(TargetCombatSession session)
         {
+            try
+            {
+                // Load the saved bests before this fight is queued for saving, then fold it in.
+                MergeBestUptime(GetBestUptimeByClass(session.TargetInfo.Name), session.GetPlayerStats());
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to update uptime bests for {SessionId}", session.SessionId);
+            }
+
             try
             {
                 historyStore.Save(HistorySessionSnapshot.From(session));

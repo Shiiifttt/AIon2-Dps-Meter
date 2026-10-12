@@ -7,7 +7,8 @@ namespace AionDpsMeter.Services.Services.Session
     {
         private const double MinDurationSeconds = 0.1;
 
-        public static PlayerStats ComputePlayerStats(PlayerSession session, long totalCombatDamage)
+        /// <param name="breakCycleStart">Last time the target staggered; break dealt after it is the current gauge cycle.</param>
+        public static PlayerStats ComputePlayerStats(PlayerSession session, long totalCombatDamage, DateTime? breakCycleStart = null)
         {
             var hits = session.Hits.ToList();
             var nonDotHits = hits.Where(h => !h.IsDot).ToList();
@@ -39,6 +40,9 @@ namespace AionDpsMeter.Services.Services.Session
 
                 DamagePerSecond = session.TotalDamage / duration,
                 DamagePercentage = GetPercentage(session.TotalDamage, totalCombatDamage),
+
+                TotalBreak = hits.Sum(h => h.Break),
+                CycleBreak = hits.Where(h => breakCycleStart is null || h.DateTime > breakCycleStart).Sum(h => h.Break),
 
                 FirstHit = session.FirstHit ?? default,
                 LastHit = session.LastHit ?? default,

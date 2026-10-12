@@ -10,6 +10,7 @@ namespace AionDpsMeter.Services.Services.Settings
         bool GroupSummonDamage { get; set; }
         bool OneMinuteDummyMode { get; set; }
         bool ShowPlayerDeaths { get; set; }
+        bool ShowBreakBars { get; set; }
         int HistoryRetantionPeriod { get; set; }
         double WindowOpacity { get; set; }
         string? BackgroundImagePath { get; set; }

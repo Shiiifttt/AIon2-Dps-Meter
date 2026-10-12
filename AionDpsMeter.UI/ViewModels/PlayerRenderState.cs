@@ -23,5 +23,9 @@
         public double VisualAbsolutePercentage { get; set; }
         public double VisualRelativePercentage { get; set; }
         public double EffectivePercentage { get; set; }
+
+        // Share of the boss stagger gauge dealt since its last break (0-100), eased like the damage bar.
+        public double VisualBreakPercentage { get; set; }
+        public string BreakTooltip { get; set; } = string.Empty;
     }
 }

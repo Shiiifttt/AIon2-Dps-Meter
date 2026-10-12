@@ -17,6 +17,9 @@
         public bool IsParry { get; init; }
         public bool IsDot { get; init; }
 
+        // Share of the stagger gauge this hit took off the target (attributed, can be fractional).
+        public double Break { get; set; }
+
 
         /// <summary>
         /// Space-separated label string of all active hit flags (e.g. "CRIT BACK").

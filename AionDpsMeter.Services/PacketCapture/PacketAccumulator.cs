@@ -129,15 +129,10 @@ public sealed class PacketAccumulator
                         byte[] packet = new byte[packetSize];
                         Buffer.BlockCopy(buffer, 0, packet, 0, packetSize);
 
-                        if (packet.Length == 11 && packet[0] == 0x0E && packet[1] == 0x00 && packet[2] == 0x36)
-                        {
-                            // This is our KeepAlive/Sync packet. No need to spam the log.
-                        }
-                        else
-                        {
+                        // KeepAlive/Sync packet: don't spam the log, but pass it on - it carries the server clock.
+                        if (!(packet.Length == 11 && packet[0] == 0x0E && packet[1] == 0x00 && packet[2] == 0x36))
                             logger.LogTrace($"EXTRACTED PACKET: {BitConverter.ToString(packet)}");
-                            onPacketFound(packet);
-                        }
+                        onPacketFound(packet);
 
                         // Remove processed packet from buffer
                         RemoveFromBuffer(packetSize, null); // null msg = don't log removal of valid packet
