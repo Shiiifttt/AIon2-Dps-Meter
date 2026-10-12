@@ -25,11 +25,14 @@ If nothing shows up after a few fights:
 
 Good to know
    - Everything stays on your PC. The only internet use is downloading skill
-     icons from the game's own image server.
-   - The meter never updates or checks for updates by itself. To update, open
-     Settings (gear icon) > Updates > "Check now". If a new version is out,
-     a window shows what's new: click "Update Now" to install it (the meter
-     restarts), or close the window to stay on your current version.
+     icons from the game's own image server, and checking GitHub for a new
+     version when you click the update button.
+   - The meter never updates or checks for updates by itself. To check, open
+     Settings (gear icon) and click the round-arrow button next to the version
+     number at the top. Green version = up to date. If a new version is out,
+     the version turns red and a window shows what's new: click "Update Now"
+     to install it (the meter restarts), or close the window to stay on your
+     current version.
      Updates are checked for a digital signature, so only genuine releases install.
    - To uninstall: delete the folder. To remove Npcap too:
      Settings > Apps > Installed apps > Npcap > Uninstall.

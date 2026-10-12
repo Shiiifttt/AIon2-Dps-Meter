@@ -40,7 +40,6 @@ namespace AionDpsMeter.UI.Pages
         new("appearance", "Appearance", "&#9707;"),
         new("hotkeys", "Hotkeys", "&#9000;"),
         new("tracking", "Tracking", "&#9881;"),
-        new("updates", "Updates", "&#8635;"),
         new("overlays", "[BETA] Overlays", "&#9635;"),
     };
 
@@ -69,10 +68,23 @@ namespace AionDpsMeter.UI.Pages
 
 
 
-        private string UpdateStatusText => _lastUpdateCheck?.Message
-            ?? (UpdateCheckerService.IsEnabled
-                ? "Nothing is checked automatically. You'll be asked before anything is installed."
-                : "Updates are turned off in this build.");
+        private string UpdateButtonTitle =>
+            $"Check for updates\nfrom github.com/{UpdateCheckerService.Repository}\nYou'll be asked before anything is installed.";
+
+        private string VersionTitle => _checkingForUpdates
+            ? "Checking for updates…"
+            : _lastUpdateCheck?.Status == UpdateCheckStatus.Available
+                ? $"{_lastUpdateCheck.Message} Click to see what's new and update."
+                : _lastUpdateCheck?.Message
+              ?? (UpdateCheckerService.IsEnabled ? "Not checked yet. Use the ⟳ button to check for updates." : "Updates are turned off in this build.");
+
+        private string VersionStateClass => _checkingForUpdates ? "" : _lastUpdateCheck?.Status switch
+        {
+            UpdateCheckStatus.UpToDate  => "is-current",
+            UpdateCheckStatus.Available => "is-outdated",
+            UpdateCheckStatus.Failed    => "is-check-failed",
+            _ => ""
+        };
 
         private async Task CheckForUpdatesAsync()
         {
@@ -88,6 +100,12 @@ namespace AionDpsMeter.UI.Pages
 
             // The What's New window is the prompt: "Update Now" or close to decline.
             if (_lastUpdateCheck.Status == UpdateCheckStatus.Available)
+                windowHelper.OpenWhatsNewWindow();
+        }
+
+        private void ReopenUpdatePrompt()
+        {
+            if (_lastUpdateCheck?.Status == UpdateCheckStatus.Available)
                 windowHelper.OpenWhatsNewWindow();
         }
 
