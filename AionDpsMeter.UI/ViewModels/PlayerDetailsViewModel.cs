@@ -377,13 +377,14 @@ namespace AionDpsMeter.UI.ViewModels
             if (_sessionManager is null) return;
 
             var buffStats = _sessionManager.GetPlayerBuffStats(_playerId);
+            var fightDuration = _sessionManager.GetCombatDuration();
 
             if (Buffs.Count == buffStats.Count && BuffsMatch(buffStats))
                 return;
 
             Buffs.Clear();
             foreach (var buff in buffStats)
-                Buffs.Add(new BuffStatsViewModel(buff));
+                Buffs.Add(new BuffStatsViewModel(buff, fightDuration));
             BuffCount = Buffs.Count;
         }
 

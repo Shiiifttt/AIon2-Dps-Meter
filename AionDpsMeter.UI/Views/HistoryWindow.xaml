@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=h:HistoryViewModel}"
         Title="History"
-        Height="620" Width="760"
+        Height="620" Width="800"
         MinHeight="420" MinWidth="680"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -342,14 +342,16 @@
                         <ColumnDefinition Width="120"/>
                         <ColumnDefinition Width="60"/>
                         <ColumnDefinition Width="80"/>
-                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="64"/>
+                        <ColumnDefinition Width="56"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text=""      FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="1" Text="Mob"   FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="4,0,0,0"/>
                     <TextBlock Grid.Column="2" Text="Date"  FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="3" Text="Time"  FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="4" Text="Damage" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="5" Text="Players" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="5" Text="vs PB" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" Margin="0,0,10,0" VerticalAlignment="Center" ToolTip="Your DPS compared with your best on that boss"/>
+                    <TextBlock Grid.Column="6" Text="Players" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
 
@@ -410,7 +412,8 @@
                                     <ColumnDefinition Width="120"/>
                                     <ColumnDefinition Width="60"/>
                                     <ColumnDefinition Width="80"/>
-                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="64"/>
+                                    <ColumnDefinition Width="56"/>
                                 </Grid.ColumnDefinitions>
 
                                 <!-- State indicator -->
@@ -451,8 +454,18 @@
                                            HorizontalAlignment="Right"
                                            VerticalAlignment="Center"/>
 
-                                <!-- Player count -->
+                                <!-- Your DPS vs your best on this boss -->
                                 <TextBlock Grid.Column="5"
+                                           Text="{Binding VsBestDisplay}"
+                                           ToolTip="{Binding VsBestTooltip}"
+                                           FontSize="10" FontWeight="Bold"
+                                           Foreground="{Binding VsBestColor, Converter={StaticResource StringToBrushConverter}}"
+                                           HorizontalAlignment="Right"
+                                           Margin="0,0,10,0"
+                                           VerticalAlignment="Center"/>
+
+                                <!-- Player count -->
+                                <TextBlock Grid.Column="6"
                                            Text="{Binding PlayerCount}"
                                            FontSize="10"
                                            Foreground="{StaticResource SecondaryTextBrush}"

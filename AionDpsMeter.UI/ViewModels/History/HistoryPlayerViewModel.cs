@@ -77,7 +77,8 @@ namespace AionDpsMeter.UI.ViewModels.History
             IReadOnlyList<BuffEvent> rawBuffEvents,
             IAppSettingsService settingsService,
             double? bestUptimeForClass = null,
-            double partyBreak = 0)
+            double partyBreak = 0,
+            TimeSpan fightDuration = default)
         {
             _stats           = stats;
             _bestUptimeForClass = bestUptimeForClass;
@@ -91,7 +92,7 @@ namespace AionDpsMeter.UI.ViewModels.History
                 .ToList();
             Buffs = buffs
                 .OrderByDescending(b => b.ApplicationCount)
-                .Select(b => new BuffStatsViewModel(b))
+                .Select(b => new BuffStatsViewModel(b, fightDuration))
                 .ToList();
         }
     }

@@ -33,6 +33,8 @@ namespace AionDpsMeter.UI.ViewModels
         public bool FrenzyBeforeKill;
         public string FrenzyWarningTooltip = string.Empty;
         public bool ShowBreakBars;
+        public string UserUptimeDisplay = string.Empty;
+        public string UserUptimeTooltip = string.Empty;
 
         private readonly TimeToKillEstimator timeToKill = new();
         private int staggerMax;
@@ -124,6 +126,15 @@ namespace AionDpsMeter.UI.ViewModels
             var currentStats = sessionManager.PlayerStats
                 .Where(r => r.IsIdentified || r.DamagePercentage > 1)
                 .ToList();
+
+            // The meter only learns which player is you on login or a zone change; if it started
+            // mid-session and you're fighting alone, the only player is you.
+            var me = currentStats.FirstOrDefault(s => s.IsUser)
+                     ?? (currentStats.Count == 1 ? currentStats[0] : null);
+            var userUptime = me?.UptimePercentage;
+            UserUptimeDisplay = userUptime is { } u ? $"{u:0}%" : string.Empty;
+            UserUptimeTooltip = userUptime is null ? string.Empty
+                : "Your uptime: share of the fight you were attacking (time nobody was hitting the boss isn't counted)";
 
             long topDamage = currentStats.Count > 0 ? currentStats.Max(x => x.TotalDamage) : 0;
             var currentIds = new HashSet<long>();

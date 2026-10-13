@@ -16,7 +16,7 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
             int take,
             IReadOnlySet<Guid>? excludeSessionIds = null);
         HistorySessionSnapshot? GetSession(Guid sessionId);
-        /// <summary>Player stats from every saved fight against this target (no hits or buffs loaded).</summary>
-        IReadOnlyList<PlayerStats> GetPlayerStatsForTarget(string targetName);
+        /// <summary>Player stats per saved fight against this target (no hits or buffs loaded).</summary>
+        IReadOnlyDictionary<Guid, IReadOnlyList<PlayerStats>> GetPlayerStatsForTarget(string targetName);
     }
 }

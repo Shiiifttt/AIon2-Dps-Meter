@@ -156,6 +156,21 @@
     margin-left: 2px;
 }
 
+.s2-dps-group {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+/* Your uptime, left of the party DPS. */
+.s2-user-uptime {
+    color: #9aa5b1;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    cursor: help;
+}
+
 .s2-total-dps {
     color: #4adfc4;
     font-size: 17px;

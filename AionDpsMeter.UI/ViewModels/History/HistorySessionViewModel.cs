@@ -40,7 +40,8 @@ namespace AionDpsMeter.UI.ViewModels.History
                     snapshot.BuffEventsByPlayer.TryGetValue(p.PlayerId, out var buffEvts) ? buffEvts : [],
                     settingsService,
                     bestUptimeForClass?.Invoke(p.ClassId),
-                    TotalBreak))
+                    TotalBreak,
+                    snapshot.Duration))
                 .ToList();
         }
     }

@@ -49,13 +49,27 @@
             <!-- HEADER -->
             <Border Grid.Row="0" Background="{StaticResource SecondaryBackgroundBrush}" CornerRadius="5,5,0,0" Padding="10,6" BorderBrush="#21262D" BorderThickness="0,0,0,1">
                 <Grid>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <!-- Title row: who and how much, plus close -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
                         <Border Width="26" Height="26" CornerRadius="3" Margin="0,0,8,0" Background="{StaticResource TertiaryBackgroundBrush}" Visibility="{Binding HasClassIcon, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image Source="{Binding ClassIconDisplay, Converter={StaticResource SafeImageSourceConverter}}" Stretch="Uniform" RenderOptions.BitmapScalingMode="LowQuality"/>
                         </Border>
                         <TextBlock Text="{Binding PlayerNameWithServer}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource PrimaryTextBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBlock Text="{Binding CombatPower, StringFormat=CP: {0}}" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,10,0" Visibility="{Binding CombatPower, Converter={StaticResource StringToVisibilityConverter}}"/>
                         <TextBlock FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"><Run Text="Total: " Foreground="{StaticResource SecondaryTextBrush}"/><Run Text="{Binding TotalDamageDisplay, Mode=OneWay}" Foreground="{StaticResource PrimaryTextBrush}" FontWeight="SemiBold"/></TextBlock>
+                    </StackPanel>
+                    <Button Grid.Row="0" Content="&#x2715;" Width="22" Height="22" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" Click="CloseButton_Click" Style="{StaticResource ModernButtonStyle}" Background="#C42B1C" Padding="0"/>
+                    <!-- Stats row (wraps when the window is narrow), view buttons on the right -->
+                    <Grid Grid.Row="1" Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"><Run Text="Crit: " Foreground="{StaticResource SecondaryTextBrush}"/><Run Text="{Binding CriticalRateDisplay, Mode=OneWay}" Foreground="{StaticResource CriticalColorBrush}" FontWeight="Bold"/></TextBlock>
                         <TextBlock FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"><Run Text="Back: " Foreground="{StaticResource SecondaryTextBrush}"/><Run Text="{Binding BackAttackRateDisplay, Mode=OneWay}" Foreground="{StaticResource BackAttackColorBrush}" FontWeight="Bold"/></TextBlock>
                         <TextBlock FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"><Run Text="Front: " Foreground="{StaticResource SecondaryTextBrush}"/><Run Text="{Binding FrontAttackRateDisplay, Mode=OneWay}" Foreground="{StaticResource BackAttackColorBrush}" FontWeight="Bold"/></TextBlock>
@@ -68,16 +82,16 @@
                         <TextBlock FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"><Run Text="DPS: " Foreground="{StaticResource SecondaryTextBrush}"/><Run Text="{Binding DpsDisplay, Mode=OneWay}" Foreground="{StaticResource DpsColorBrush}" FontWeight="Bold"/></TextBlock>
                         <TextBlock FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"><Run Text="Time: " Foreground="{StaticResource SecondaryTextBrush}"/><Run Text="{Binding CombatDurationDisplay, Mode=OneWay}" Foreground="{StaticResource PrimaryTextBrush}" FontWeight="SemiBold"/></TextBlock>
                         <TextBlock FontSize="11" VerticalAlignment="Center"><Run Text="Share: " Foreground="{StaticResource SecondaryTextBrush}"/><Run Text="{Binding DamageContributionDisplay, Mode=OneWay}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/></TextBlock>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        </WrapPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
                         <Button Width="44" Height="22" FontSize="11" Command="{Binding ShowGraphViewCommand}" Style="{StaticResource ModernButtonStyle}" Background="{StaticResource TertiaryBackgroundBrush}" Margin="0,0,6,0" Padding="0">
                             <TextBlock Text="Graph" FontSize="10" Padding="0"/>
                         </Button>
-                        <Button Width="40" Height="22" FontSize="11" Command="{Binding ToggleCombatLogCommand}" Style="{StaticResource ModernButtonStyle}" Background="{StaticResource TertiaryBackgroundBrush}" Margin="0,0,6,0" Padding="0">
+                        <Button Width="40" Height="22" FontSize="11" Command="{Binding ToggleCombatLogCommand}" Style="{StaticResource ModernButtonStyle}" Background="{StaticResource TertiaryBackgroundBrush}" Padding="0">
                             <TextBlock FontSize="10" Padding="0"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="Log"/><Style.Triggers><DataTrigger Binding="{Binding ShowCombatLog}" Value="True"><Setter Property="Text" Value="Skills"/></DataTrigger><DataTrigger Binding="{Binding ShowGraph}" Value="True"><Setter Property="Text" Value="Skills"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
                         </Button>
-                        <Button Content="&#x2715;" Width="22" Height="22" FontSize="10" Click="CloseButton_Click" Style="{StaticResource ModernButtonStyle}" Background="#C42B1C" Padding="0"/>
-                    </StackPanel>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
             <!-- CONTENT -->
@@ -249,7 +263,7 @@
                                                     <StackPanel>
                                                         <TextBlock Text="{Binding BuffName}" FontWeight="Bold" FontSize="12" Foreground="{StaticResource PrimaryTextBrush}"/>
                                                         <TextBlock Text="{Binding Description}" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,2,0,4"/>
-                                                        <StackPanel Orientation="Horizontal"><TextBlock Text="Uptime: " FontSize="10" Foreground="{StaticResource SecondaryTextBrush}"/><TextBlock Text="{Binding DurationFormatted}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource BuffColorBrush}"/></StackPanel>
+                                                        <StackPanel Orientation="Horizontal"><TextBlock Text="Uptime: " FontSize="10" Foreground="{StaticResource SecondaryTextBrush}"/><TextBlock Text="{Binding UptimeWithPercent}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource BuffColorBrush}"/></StackPanel>
                                                         <StackPanel Orientation="Horizontal"><TextBlock Text="Applied: " FontSize="10" Foreground="{StaticResource SecondaryTextBrush}"/><TextBlock Text="{Binding ApplicationCountText}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource PrimaryTextBrush}"/></StackPanel>
                                                     </StackPanel>
                                                 </ToolTip>
@@ -258,7 +272,7 @@
                                                 <Border Width="20" Height="20" CornerRadius="2" Background="{StaticResource PrimaryBackgroundBrush}"><Image Source="{Binding BuffIcon, Converter={StaticResource SafeImageSourceConverter}}" Stretch="Uniform" RenderOptions.BitmapScalingMode="LowQuality"/></Border>
                                                 <StackPanel VerticalAlignment="Center" Margin="3,0,2,0">
                                                     <TextBlock Text="{Binding ApplicationCountText}" FontSize="8" FontWeight="Bold" Foreground="{StaticResource BuffColorBrush}" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="{Binding DurationFormatted}" FontSize="7" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding CompactUptimeText}" FontSize="7" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Border>

@@ -106,7 +106,7 @@ namespace AionDpsMeter.UI.ViewModels.History
             var result = _sessionManager.GetHistoryPage(query);
 
             Sessions = new ObservableCollection<HistoryEntryViewModel>(
-                result.Items.Select(s => new HistoryEntryViewModel(s)));
+                result.Items.Select(s => new HistoryEntryViewModel(s, _sessionManager.GetUserDpsVsBest(s.SessionId, s.TargetName))));
 
             TotalCount = result.TotalCount;
             CurrentPage = result.PageNumber;

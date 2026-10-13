@@ -44,7 +44,13 @@
                         <FrenzyWarningIcon Tooltip="@ViewModel.FrenzyWarningTooltip" />
                     }
                 </span>
-                <span class="s2-total-dps">@ViewModel.TotalRaidDamageFormatted</span>
+                <span class="s2-dps-group">
+                    @if (!string.IsNullOrEmpty(ViewModel.UserUptimeDisplay))
+                    {
+                        <span class="s2-user-uptime" title="@ViewModel.UserUptimeTooltip">@ViewModel.UserUptimeDisplay</span>
+                    }
+                    <span class="s2-total-dps">@ViewModel.TotalRaidDamageFormatted</span>
+                </span>
             </div>
 
             @if (ViewModel.HasActiveTarget)

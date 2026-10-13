@@ -403,51 +403,54 @@ namespace AionDpsMeter.Services.Services.Session
         {
             lock (lockObject)
             {
-                var byClass = GetBestUptimeByClass(targetName);
-                return byClass.TryGetValue(classId, out var best) ? best : null;
+                return GetBossRecords(targetName).BestUptime(classId);
             }
         }
 
-        private static readonly TimeSpan MinUptimeBenchmarkFight = TimeSpan.FromMinutes(1);
-        private readonly Dictionary<string, Dictionary<int, double>> bestUptimeByTarget = new();
-
-        private Dictionary<int, double> GetBestUptimeByClass(string targetName)
+        /// <summary>Your DPS in this fight against your best on the same boss, or null if there's nothing to compare.</summary>
+        public PersonalBestComparison? GetUserDpsVsBest(Guid sessionId, string targetName)
         {
-            if (bestUptimeByTarget.TryGetValue(targetName, out var byClass)) return byClass;
+            lock (lockObject)
+            {
+                var records = GetBossRecords(targetName);
+                var live = targetEntries.Values
+                    .Select(e => e.CurrentSession)
+                    .FirstOrDefault(s => s is { IsCompleted: false } && s.SessionId == sessionId);
 
-            byClass = new Dictionary<int, double>();
+                return live is not null ? records.CompareLive(live.GetPlayerStats()) : records.CompareSaved(sessionId);
+            }
+        }
+
+        private readonly Dictionary<string, BossRecords> bossRecords = new();
+
+        private BossRecords GetBossRecords(string targetName)
+        {
+            if (bossRecords.TryGetValue(targetName, out var records)) return records;
+
+            records = new BossRecords();
             try
             {
-                MergeBestUptime(byClass, historyStore.GetPlayerStatsForTarget(targetName));
+                foreach (var (sessionId, stats) in historyStore.GetPlayerStatsForTarget(targetName))
+                    records.Add(sessionId, stats);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to load uptime history for {Target}", targetName);
+                logger.LogError(ex, "Failed to load saved records for {Target}", targetName);
             }
-            bestUptimeByTarget[targetName] = byClass;
-            return byClass;
-        }
-
-        private static void MergeBestUptime(Dictionary<int, double> byClass, IEnumerable<PlayerStats> stats)
-        {
-            foreach (var s in stats)
-            {
-                if (s.UptimePercentage is not { } uptime || s.ClassId <= 0) continue;
-                if (TimeSpan.FromSeconds(s.ActiveSeconds + s.IdleSeconds) < MinUptimeBenchmarkFight) continue;
-                if (!byClass.TryGetValue(s.ClassId, out var best) || uptime > best) byClass[s.ClassId] = uptime;
-            }
+            bossRecords[targetName] = records;
+            return records;
         }
 
         private void OnSessionCompleted(TargetCombatSession session)
         {
             try
             {
-                // Load the saved bests before this fight is queued for saving, then fold it in.
-                MergeBestUptime(GetBestUptimeByClass(session.TargetInfo.Name), session.GetPlayerStats());
+                // Load the saved records before this fight is queued for saving, then fold it in.
+                GetBossRecords(session.TargetInfo.Name).Add(session.SessionId, session.GetPlayerStats());
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to update uptime bests for {SessionId}", session.SessionId);
+                logger.LogError(ex, "Failed to update boss records for {SessionId}", session.SessionId);
             }
 
             try
