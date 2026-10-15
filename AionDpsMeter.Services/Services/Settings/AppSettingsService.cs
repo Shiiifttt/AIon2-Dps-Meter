@@ -283,6 +283,22 @@ namespace AionDpsMeter.Services.Services.Settings
             }
         }
 
+        public bool ShowBossPatterns
+        {
+            get { lock (_lock) return _data.ShowBossPatterns; }
+            set
+            {
+                bool changed;
+                lock (_lock)
+                {
+                    changed = _data.ShowBossPatterns != value;
+                    _data.ShowBossPatterns = value;
+                    if (changed) Save();
+                }
+                if (changed) SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         public bool IsPacketLoggingEnabled
         {
             get { lock (_lock) return _data.IsPacketLoggingEnabled; }
@@ -561,6 +577,9 @@ namespace AionDpsMeter.Services.Services.Settings
 
             [JsonPropertyName("showBreakBars")]
             public bool ShowBreakBars { get; set; }
+
+            [JsonPropertyName("showBossPatterns")]
+            public bool ShowBossPatterns { get; set; }
 
             [JsonPropertyName("playerRowScale")]
             public double PlayerRowScale { get; set; } = 1.0;

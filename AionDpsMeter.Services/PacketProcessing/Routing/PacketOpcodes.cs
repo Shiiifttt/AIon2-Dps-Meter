@@ -20,4 +20,6 @@ public static class PacketOpcodes
     public const ushort KeepAlive = 0x3600;           // 00 36
     public const ushort StaggerGauge = 0xE005;        // 05 E0
     public const ushort CombatState = 0x8D21;         // 21 8D
+    public const ushort SkillUse = 0x3802;            // 02 38
+    public const ushort SkillCast = 0x3809;           // 09 38
 }

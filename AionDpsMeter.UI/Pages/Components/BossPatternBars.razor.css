@@ -1,0 +1,86 @@
+/* Predicted boss skills. Bars drain to empty: teal until the skill is expected, then empty and
+   flickering while ready, red while the boss casts it (draining over the cast time). */
+.boss-patterns {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 5px;
+}
+
+    .boss-patterns.boxed {
+        flex: 0 0 auto;
+        margin: 4px 0 0 0;
+        padding: 4px;
+        background: rgba(15, 15, 20, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+    }
+
+.boss-pattern {
+    position: relative;
+    height: 14px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 10px;
+    line-height: 14px;
+    color: #d8dde3;
+    cursor: help;
+}
+
+.boss-pattern-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: linear-gradient(90deg, rgba(0, 121, 107, 0.45) 0%, rgba(77, 182, 172, 0.85) 100%);
+    transition: width 0.1s linear;
+}
+
+.boss-pattern.ready {
+    animation: boss-pattern-flicker 1.1s ease-in-out infinite;
+}
+
+.boss-pattern.casting .boss-pattern-fill {
+    background: linear-gradient(90deg, rgba(198, 40, 40, 0.6) 0%, rgba(255, 82, 82, 0.95) 100%);
+}
+
+.boss-pattern-name,
+.boss-pattern-time {
+    position: relative;
+    padding: 0 5px;
+    text-shadow: 0 0 2px #000, 0 0 3px #000;
+    white-space: nowrap;
+}
+
+.boss-pattern-name {
+    display: inline-block;
+    max-width: calc(100% - 64px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: top;
+}
+
+.boss-pattern-time {
+    position: absolute;
+    right: 0;
+    top: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.boss-pattern.ready .boss-pattern-time {
+    color: #ffe082;
+}
+
+.boss-pattern.casting .boss-pattern-time {
+    color: #fff;
+}
+
+@keyframes boss-pattern-flicker {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}

@@ -1,6 +1,7 @@
 using AionDpsMeter.Services.PacketProcessing.Routing;
 using AionDpsMeter.Services.PacketProcessing.Shared;
 using AionDpsMeter.Services.Services;
+using AionDpsMeter.Services.Services.BossPatterns;
 using AionDpsMeter.Services.Services.Entity;
 
 namespace AionDpsMeter.Services.PacketProcessing.Processors
@@ -9,7 +10,7 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
     //   <len> 21 8D <entity> <hasDeadline> <inCombat> [<u64 server unix ms>]
     // For bosses with a frenzy (enrage) timer the pull carries the deadline, sent only once.
     [PacketOpcode(PacketOpcodes.CombatState)]
-    public sealed class CombatStateProcessor(EntityTracker entityTracker, ServerClock serverClock) : IOpcodeProcessor
+    public sealed class CombatStateProcessor(EntityTracker entityTracker, ServerClock serverClock, BossPatternTracker patterns) : IOpcodeProcessor
     {
         private static readonly TimeSpan MaxFrenzyTimer = TimeSpan.FromHours(1);
 
@@ -28,8 +29,12 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
             if (!inCombat)
             {
                 if (mob is not null) mob.FrenzyAtUtc = null;
+                patterns.OnLeaveCombat(entityId);
                 return;
             }
+
+            if (mob is { IsBoss: true })
+                patterns.OnPull(entityId, mob.MobCode, packet.ReceivedAtUtc);
 
             if (!hasDeadline || reader.Remaining < 8) return;
 

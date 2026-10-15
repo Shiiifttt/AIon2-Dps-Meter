@@ -1,4 +1,5 @@
-﻿@using AionDpsMeter.Services.Services.Session
+﻿@using AionDpsMeter.Services.Services.BossPatterns
+@using AionDpsMeter.Services.Services.Session
 @using AionDpsMeter.Services.Services.Settings
 @using AionDpsMeter.UI.Services.Windowing
 @using AionDpsMeter.UI.ViewModels
@@ -18,6 +19,7 @@ else
     [Inject] private IAppSettingsService SettingsService { get; set; } = null!;
     [Inject] private IWindowManagerService WindowManager { get; set; } = null!;
     [Inject] private WindowHelper WindowHelper { get; set; } = null!;
+    [Inject] private BossPatternTracker BossPatterns { get; set; } = null!;
 
     private int UiStyle => SettingsService.UiStyle;
 
@@ -25,7 +27,7 @@ else
 
     protected override void OnInitialized()
     {
-        viewModel = new MainDpsViewModel(SessionManager, SettingsService, WindowManager, WindowHelper, () => InvokeAsync(StateHasChanged));
+        viewModel = new MainDpsViewModel(SessionManager, SettingsService, WindowManager, WindowHelper, BossPatterns, () => InvokeAsync(StateHasChanged));
         viewModel.Initialize();
     }
 

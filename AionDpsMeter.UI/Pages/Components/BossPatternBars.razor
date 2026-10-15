@@ -1,0 +1,46 @@
+@using AionDpsMeter.Services.Services.BossPatterns
+@using System.Globalization
+
+@if (Bars.Count > 0)
+{
+    <div class="boss-patterns @(Boxed ? "boxed" : string.Empty)">
+        @foreach (var bar in Bars)
+        {
+            <div class="boss-pattern @StateClass(bar.State)" title="@Tooltip(bar)">
+                <div class="boss-pattern-fill" style="width:@(((1 - bar.Progress) * 100).ToString("0.##", CultureInfo.InvariantCulture))%"></div>
+                <span class="boss-pattern-name">@bar.Name</span>
+                <span class="boss-pattern-time">@TimeText(bar)</span>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<BossPatternBar> Bars { get; set; } = [];
+
+    // Own panel, for layouts where the bars sit outside the header.
+    [Parameter] public bool Boxed { get; set; }
+
+    private static string StateClass(BossPatternState state) => state switch
+    {
+        BossPatternState.Casting => "casting",
+        BossPatternState.Ready => "ready",
+        _ => string.Empty,
+    };
+
+    private static string TimeText(BossPatternBar bar) => bar.State switch
+    {
+        BossPatternState.Casting => $"CAST {Seconds(bar.Remaining)}",
+        BossPatternState.Ready => "READY",
+        _ => $"{Math.Ceiling(bar.Remaining.TotalSeconds):0}s",
+    };
+
+    private static string Tooltip(BossPatternBar bar) => bar.State switch
+    {
+        BossPatternState.Casting => $"{bar.Name}: the boss is casting it",
+        BossPatternState.Ready => $"{bar.Name}: off cooldown for {Seconds(bar.Overdue)}; the boss can use it any time",
+        _ => $"{bar.Name}: expected in ~{Seconds(bar.Remaining)} (learned from past fights)",
+    };
+
+    private static string Seconds(TimeSpan t) => $"{t.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)}s";
+}

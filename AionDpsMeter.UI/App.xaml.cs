@@ -2,6 +2,7 @@
 using AionDpsMeter.Services.Models;
 using AionDpsMeter.Services.PacketCapture;
 using AionDpsMeter.Services.Services;
+using AionDpsMeter.Services.Services.BossPatterns;
 using AionDpsMeter.Services.Services.Entity;
 using AionDpsMeter.Services.Services.Session;
 using AionDpsMeter.Services.Services.Session.Persistence;
@@ -51,6 +52,7 @@ namespace AionDpsMeter.UI
 
                     services.AddSingleton<EntityTracker>();
                     services.AddSingleton<ServerClock>();
+                    services.AddSingleton<BossPatternTracker>();
                     services.AddKeyedSingleton<ITimedEventTracker, BuffTimedEventTracker>("Buffs");
                     services.AddKeyedSingleton<ITimedEventTracker, SkillCdTimedEventTracker>("SkillCd");
                     services.AddSingleton<CombatSessionManager>();

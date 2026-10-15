@@ -1,4 +1,5 @@
-﻿using AionDpsMeter.Services.Services.Session;
+﻿using AionDpsMeter.Services.Services.BossPatterns;
+using AionDpsMeter.Services.Services.Session;
 using AionDpsMeter.Services.Services.Settings;
 using AionDpsMeter.Core.Windowing;
 using AionDpsMeter.UI.Services.Windowing;
@@ -14,6 +15,9 @@ namespace AionDpsMeter.UI.ViewModels
         private readonly IAppSettingsService settingsService;
         private readonly IWindowManagerService windowManager;
         private readonly WindowHelper windowHelper;
+        private readonly BossPatternTracker bossPatterns;
+
+        private const int MaxBossPatternBars = 5;
 
         public readonly Dictionary<long, PlayerRenderState> PlayerStates = new();
 
@@ -33,6 +37,7 @@ namespace AionDpsMeter.UI.ViewModels
         public bool FrenzyBeforeKill;
         public string FrenzyWarningTooltip = string.Empty;
         public bool ShowBreakBars;
+        public IReadOnlyList<BossPatternBar> BossPatternBars = [];
         public string UserUptimeDisplay = string.Empty;
         public string UserUptimeTooltip = string.Empty;
 
@@ -48,12 +53,13 @@ namespace AionDpsMeter.UI.ViewModels
 
         private readonly Func<Task> onStateChanged;
 
-        public MainDpsViewModel(CombatSessionManager sessionManager, IAppSettingsService settingsService, IWindowManagerService windowManager, WindowHelper windowHelper, Func<Task> onStateChanged)
+        public MainDpsViewModel(CombatSessionManager sessionManager, IAppSettingsService settingsService, IWindowManagerService windowManager, WindowHelper windowHelper, BossPatternTracker bossPatterns, Func<Task> onStateChanged)
         {
             this.sessionManager = sessionManager;
             this.settingsService = settingsService;
             this.windowManager = windowManager;
             this.windowHelper = windowHelper;
+            this.bossPatterns = bossPatterns;
             this.onStateChanged = onStateChanged;
         }
 
@@ -108,6 +114,9 @@ namespace AionDpsMeter.UI.ViewModels
                     : string.Empty;
 
                 ShowBreakBars = settingsService.ShowBreakBars && targetInfo.StaggerMax > 0;
+                BossPatternBars = settingsService.ShowBossPatterns
+                    ? bossPatterns.GetBars(targetInfo.Id, DateTime.UtcNow, MaxBossPatternBars)
+                    : [];
                 staggerMax = targetInfo.StaggerMax;
                 uiNeedsUpdate = true;
             }
@@ -117,6 +126,7 @@ namespace AionDpsMeter.UI.ViewModels
                 TimeToKillDisplay = string.Empty;
                 FrenzyBeforeKill = false;
                 ShowBreakBars = false;
+                BossPatternBars = [];
                 timeToKill.Reset();
                 uiNeedsUpdate = true;
             }
