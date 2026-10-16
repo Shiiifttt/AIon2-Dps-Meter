@@ -6,10 +6,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- WinForms only for the tray icon (NotifyIcon); keep its namespaces out of the global usings so they don't clash with WPF. -->
+    <UseWindowsForms>true</UseWindowsForms>
     <AddRazorSupportForMvc>false</AddRazorSupportForMvc>
     <UseRazorSourceGenerator>true</UseRazorSourceGenerator>
-    <AssemblyVersion>1.11.9.326</AssemblyVersion>
-    <FileVersion>1.11.9.326</FileVersion>
+    <AssemblyVersion>1.11.10.327</AssemblyVersion>
+    <FileVersion>1.11.10.327</FileVersion>
     <ApplicationIcon>ICON_CH_SKILL_006.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -29,6 +31,11 @@
     <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
 
   <ItemGroup>

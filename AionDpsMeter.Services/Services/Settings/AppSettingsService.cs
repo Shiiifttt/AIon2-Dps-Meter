@@ -518,6 +518,22 @@ namespace AionDpsMeter.Services.Services.Settings
             }
         }
 
+        public bool MainClickThrough
+        {
+            get { lock (_lock) return _data.MainClickThrough; }
+            set
+            {
+                bool changed;
+                lock (_lock)
+                {
+                    changed = _data.MainClickThrough != value;
+                    _data.MainClickThrough = value;
+                    if (changed) Save();
+                }
+                if (changed) SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         private AppSettingsData Load()
         {
             try
@@ -590,6 +606,9 @@ namespace AionDpsMeter.Services.Services.Settings
 
             [JsonPropertyName("onlyMyDummyDamage")]
             public bool OnlyMyDummyDamage { get; set; }
+
+            [JsonPropertyName("mainClickThrough")]
+            public bool MainClickThrough { get; set; }
 
             [JsonPropertyName("showPlayerDeaths")]
             public bool ShowPlayerDeaths { get; set; } = true;

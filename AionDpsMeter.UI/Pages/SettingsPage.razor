@@ -70,6 +70,12 @@
 
             <div class="settings-section-label settings-section-label--spaced">WINDOW</div>
 
+            <SettingRow Title="Click-Through Meter" Description="Mouse clicks go through the meter to the game. To turn it off, right-click the meter's tray icon and untick Click-through">
+                <ValueSlot>
+                    <ToggleSwitch Checked="settings.MainClickThrough" CheckedChanged="v => { settings.MainClickThrough = v; }" />
+                </ValueSlot>
+            </SettingRow>
+
             <SettingRow Title="Window Opacity" Description="How see-through the overlay is (10–100%)">
                 <ValueSlot>
                     <div class="slider-field">

@@ -286,7 +286,7 @@ namespace AionDpsMeter.UI.ViewModels
         public void OpenStatEffCalc() => windowHelper.OpenStatEff();
 
         public void OpenSettings() => windowHelper.OpenSettings();
-        public void Minimize() => windowManager.Minimize(WindowKey.Main);
+        public void Minimize() => windowHelper.HideMeter();
         public void Close() => windowManager.CloseApplication();
         public void OpenPlayerDetails(PlayerRenderState player) => windowHelper.OpenPlayerDetails(player);
 

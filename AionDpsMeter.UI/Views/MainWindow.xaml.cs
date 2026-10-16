@@ -1,9 +1,11 @@
 ﻿using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using AionDpsMeter.Services.Services.Settings;
 using AionDpsMeter.UI.Pages;
 using AionDpsMeter.UI.Services.Windowing;
+using AionDpsMeter.UI.Services.Windowing.Native;
 using AionDpsMeter.UI.Utils;
 using AionDpsMeter.UI.ViewModels;
 using Microsoft.AspNetCore.Components.WebView.Wpf;
@@ -40,6 +42,7 @@ namespace AionDpsMeter.UI.Views
                     RegisterToggleHotkey();
                 });
 
+            SourceInitialized += (_, _) => HideFromAltTab();
             Loaded += (_, _) => RegisterToggleHotkey();
             Loaded += (_, _) => InitializeStyle2WebView();
             windowManager.CloseAppCommand += OnCloseCommand;
@@ -79,24 +82,14 @@ namespace AionDpsMeter.UI.Views
             }
         }
 
-        private void ToggleWindowVisibility()
-        {
-            var appWindows = Application.Current.Windows.OfType<Window>().ToList();
+        private void ToggleWindowVisibility() => windowHelper.ToggleMeterVisibility();
 
-            if (WindowState != WindowState.Minimized)
-            {
-                foreach (var window in appWindows)
-                    window.WindowState = WindowState.Minimized;
-            }
-            else
-            {
-                foreach (var window in appWindows)
-                {
-                    window.WindowState = WindowState.Normal;
-                    window.Activate();
-                }
-                Activate();
-            }
+        // ShowInTaskbar="False" keeps the meter off the taskbar; the tool-window style also keeps it
+        // out of Alt+Tab. It lives in the tray instead (TrayIcon).
+        private void HideFromAltTab()
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            NativeWindowHelper.SetExtendedStyle(hwnd, NativeWindowHelper.GetExtendedStyle(hwnd) | NativeMethods.WS_EX_TOOLWINDOW);
         }
 
 

@@ -6,6 +6,7 @@ using AionDpsMeter.UI.Pages;
 using AionDpsMeter.UI.ViewModels;
 using AionDpsMeter.UI.Views;
 using Microsoft.Extensions.DependencyInjection;
+using System.Windows;
 
 namespace AionDpsMeter.UI.Services.Windowing
 {
@@ -18,6 +19,12 @@ namespace AionDpsMeter.UI.Services.Windowing
 
         private bool IsBuffOverlayEnabled { get; set; }
         private bool IsSkillCdOverlayEnabled { get; set; }
+        private bool IsMainClickThrough { get; set; }
+
+        // Windows that were visible when the meter was last hidden, so showing it brings them back too.
+        private List<Window> _windowsHiddenWithMeter = [];
+
+        public bool IsMeterVisible => MainWindow.IsVisible;
 
         private MainWindow MainWindow => serviceProvider.GetRequiredService<MainWindow>();
 
@@ -38,6 +45,7 @@ namespace AionDpsMeter.UI.Services.Windowing
 
             IsBuffOverlayEnabled = settingsService.BufOverlaySettings.Enabled;
             IsSkillCdOverlayEnabled = settingsService.SkillCdOverlaySettings.Enabled;
+            IsMainClickThrough = settingsService.MainClickThrough;
             settingsService.SettingsChanged += SettingsChanged;
         }
 
@@ -54,7 +62,12 @@ namespace AionDpsMeter.UI.Services.Windowing
                 IsSkillCdOverlayEnabled = settingsService.SkillCdOverlaySettings.Enabled;
                 ManageSkillCdOverlay();
             }
-                
+
+            if (IsMainClickThrough != settingsService.MainClickThrough)
+            {
+                IsMainClickThrough = settingsService.MainClickThrough;
+                ApplyMainClickThrough();
+            }
         }
 
         public void OpenRequiredWindows()
@@ -63,6 +76,50 @@ namespace AionDpsMeter.UI.Services.Windowing
             ManageSkillCdOverlay();
             windowManager.SetClickThrough(WindowKey.BuffOverlay);
             windowManager.SetClickThrough(WindowKey.SkillCdOverlay);
+            ApplyMainClickThrough();
+        }
+
+        private void ApplyMainClickThrough()
+        {
+            if (IsMainClickThrough) windowManager.SetClickThrough(WindowKey.Main);
+            else windowManager.RestoreClickThrough(WindowKey.Main);
+        }
+
+        /// <summary>Hides the meter (and every other open window) to the tray, or brings them back.</summary>
+        public void ToggleMeterVisibility()
+        {
+            if (MainWindow.IsVisible) HideAllToTray();
+            else ShowMeter();
+        }
+
+        /// <summary>Hides just the meter window to the tray (the meter's own hide button).</summary>
+        public void HideMeter() => MainWindow.Hide();
+
+        private void HideAllToTray()
+        {
+            _windowsHiddenWithMeter = Application.Current.Windows.OfType<Window>()
+                .Where(window => window.IsVisible)
+                .ToList();
+
+            foreach (var window in _windowsHiddenWithMeter)
+                window.Hide();
+        }
+
+        private void ShowMeter()
+        {
+            foreach (var window in _windowsHiddenWithMeter)
+            {
+                // Skip windows closed while hidden, and overlays switched off in the meantime.
+                if (!Application.Current.Windows.OfType<Window>().Contains(window)) continue;
+                if (window is BuffOverlayWindow && !IsBuffOverlayEnabled) continue;
+                if (window is SkillCdOverlayWindow && !IsSkillCdOverlayEnabled) continue;
+                window.Show();
+            }
+            _windowsHiddenWithMeter = [];
+
+            MainWindow.Show();
+            if (!IsMainClickThrough)
+                MainWindow.Activate();
         }
 
 

@@ -27,6 +27,8 @@ namespace AionDpsMeter.UI
     {
         public static IHost AppHost { get; private set; }
 
+        private TrayIcon? _trayIcon;
+
         public App()
         {
 
@@ -83,11 +85,13 @@ namespace AionDpsMeter.UI
             var windowHelper = AppHost.Services.GetRequiredService<WindowHelper>();
             windowManager.Open(WindowKey.Main, mainWindow, true);
             windowHelper.OpenRequiredWindows();
+            _trayIcon = new TrayIcon(windowHelper, AppHost.Services.GetRequiredService<IAppSettingsService>(), windowManager);
             base.OnStartup(e);
         }
 
         protected override async void OnExit(ExitEventArgs e)
         {
+            _trayIcon?.Dispose();
             try
             {
                 var sessionManager = AppHost.Services.GetRequiredService<CombatSessionManager>();

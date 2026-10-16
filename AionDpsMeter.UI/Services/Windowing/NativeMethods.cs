@@ -13,6 +13,7 @@ internal static class NativeMethods
 
     // Extended window styles.
     public const long WS_EX_TRANSPARENT = 0x00000020L;
+    public const long WS_EX_TOOLWINDOW = 0x00000080L;
     public const long WS_EX_NOACTIVATE = 0x08000000L;
 
     public delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);

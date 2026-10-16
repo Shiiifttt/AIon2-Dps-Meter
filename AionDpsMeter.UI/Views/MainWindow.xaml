@@ -11,6 +11,7 @@
         MinHeight="50"
         MinWidth="370"
         WindowStyle="None"
+        ShowInTaskbar="False"
         AllowsTransparency="True"
         Background="Transparent"
         Topmost="True"
