@@ -1,5 +1,6 @@
 ﻿using AionDpsMeter.Core.GameData.Services;
 using AionDpsMeter.Core.Models;
+using AionDpsMeter.Services.Services.Session;
 using AionDpsMeter.Services.Services.Settings;
 using AionDpsMeter.Services.Services.Update;
 using AionDpsMeter.Core.Windowing;
@@ -9,7 +10,7 @@ using Microsoft.AspNetCore.Components.Web;
 
 namespace AionDpsMeter.UI.Pages
 {
-    partial class SettingsPage(IAppSettingsService settings, WindowHelper windowHelper, IWindowManagerService windowManager, UpdateCheckerService updateChecker) : IDisposable
+    partial class SettingsPage(IAppSettingsService settings, WindowHelper windowHelper, IWindowManagerService windowManager, UpdateCheckerService updateChecker, CombatSessionManager sessionManager) : IDisposable
     {
         private List<Skill> AllSkills  => FilteredSkills();
 
@@ -21,6 +22,8 @@ namespace AionDpsMeter.UI.Pages
         private string _version = "1.0.0";
         private bool _checkingForUpdates;
         private UpdateCheckResult? _lastUpdateCheck;
+        private bool _confirmDummyCleanup;
+        private string? _dummyCleanupResult;
 
        
         private const int MaxTrackedBuffSkills = 10;
@@ -165,6 +168,38 @@ namespace AionDpsMeter.UI.Pages
             if (digitsOnly.Length == 0) return;
             if (int.TryParse(digitsOnly, out var days))
                 settings.HistoryRetantionPeriod = Math.Clamp(days, 1, 9999);
+        }
+
+        private string DummyCleanupDescription => _dummyCleanupResult
+            ?? (_confirmDummyCleanup
+                ? "Click again to permanently delete every saved dummy fight under 1 minute"
+                : "Remove saved fights against training dummies that lasted under 1 minute");
+
+        // First click arms it, second click deletes.
+        private void OnDeleteShortDummyParses()
+        {
+            if (!_confirmDummyCleanup)
+            {
+                _confirmDummyCleanup = true;
+                _dummyCleanupResult = null;
+                return;
+            }
+
+            _confirmDummyCleanup = false;
+            try
+            {
+                var deleted = sessionManager.DeleteShortDummySessions();
+                _dummyCleanupResult = deleted switch
+                {
+                    0 => "No dummy fights under 1 minute found",
+                    1 => "Deleted 1 dummy fight",
+                    _ => $"Deleted {deleted} dummy fights",
+                };
+            }
+            catch (Exception)
+            {
+                _dummyCleanupResult = "Couldn't delete; try again";
+            }
         }
 
         private void OnHotkeyFocus(FocusEventArgs e) => _capturingHotkey = true;

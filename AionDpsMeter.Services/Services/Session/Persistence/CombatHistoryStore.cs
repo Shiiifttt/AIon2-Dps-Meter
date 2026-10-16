@@ -168,6 +168,28 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
                     x => (IReadOnlyList<PlayerStats>)(DeserializeOrDefault<List<PlayerStats>>(x.PlayerStatsJson) ?? []));
         }
 
+        public int DeleteShortSessions(IReadOnlySet<string> targetNames, TimeSpan maxDuration)
+        {
+            DrainPendingSaves();
+            using var db = _dbContextFactory.CreateDbContext();
+
+            // SQLite can't subtract dates in a query; the candidate rows are small without the JSON columns.
+            var names = targetNames.ToList();
+            var ids = db.Sessions
+                .AsNoTracking()
+                .Where(x => names.Contains(x.TargetName))
+                .Select(x => new { x.SessionId, x.SessionStart, x.SessionEnd })
+                .AsEnumerable()
+                .Where(x => x.SessionEnd - x.SessionStart < maxDuration)
+                .Select(x => x.SessionId)
+                .ToList();
+            if (ids.Count == 0) return 0;
+
+            var deleted = db.Sessions.Where(x => ids.Contains(x.SessionId)).ExecuteDelete();
+            _logger.LogInformation("Deleted {Count} short sessions (under {MaxDuration}).", deleted, maxDuration);
+            return deleted;
+        }
+
         private static T? DeserializeOrDefault<T>(string json)
         {
             if (string.IsNullOrWhiteSpace(json)) return default;

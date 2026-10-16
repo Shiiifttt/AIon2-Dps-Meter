@@ -1,4 +1,5 @@
 ﻿using AionDpsMeter.Core.Models;
+using AionDpsMeter.Core.GameData.Services;
 using AionDpsMeter.Services.Models;
 using AionDpsMeter.Services.Services.Entity;
 using AionDpsMeter.Services.Services.Session.Persistence;
@@ -258,6 +259,17 @@ namespace AionDpsMeter.Services.Services.Session
                     if (entityTracker.IsSummon(damageEvent.SourceEntity.Id) &&
                         !ResolveSummonSource(damageEvent))
                         return;
+
+                    if (!entityTracker.HasKnownUser && !damageEvent.IsDot
+                        && selfIdentifier.OnSkillUsed(damageEvent.Skill.Id, damageEvent.SourceEntity.Id, damageEvent.DateTime) is { } me)
+                        IdentifyUser(me);
+
+                    // Until we know who you are, everyone counts; IdentifyUser clears the others out.
+                    if (settingsService.OnlyMyDummyDamage && entityTracker.HasKnownUser
+                        && (entityTracker.GetTargetMob(damageEvent.TargetEntity.Id) ?? damageEvent.TargetEntity).IsDummy
+                        && !entityTracker.IsCurrentPlayer(damageEvent.SourceEntity.Id))
+                        return;
+
                     RouteToTargetEntry(damageEvent);
 
                     // Check all other entries for idle timeout on each new event
@@ -324,6 +336,26 @@ namespace AionDpsMeter.Services.Services.Session
         public void RegisterSkillCdEvent(TimedEvent skillCdEvent)
         {
             skillCdEventTracker.Register(skillCdEvent);
+            if (skillCdEvent.Duration <= TimeSpan.Zero) return;
+
+            lock (lockObject)
+            {
+                if (!entityTracker.HasKnownUser && selfIdentifier.OnCooldownStarted((int)skillCdEvent.Id, DateTime.Now) is { } me)
+                    IdentifyUser(me);
+            }
+        }
+
+        private void IdentifyUser(int playerId)
+        {
+            entityTracker.MarkAsUser(playerId);
+            logger.LogInformation("Identified you as player {PlayerId} from your skill cooldowns", playerId);
+            if (!settingsService.OnlyMyDummyDamage) return;
+
+            foreach (var entry in targetEntries.Values)
+            {
+                if (entry.CurrentSession is { IsCompleted: false } session && session.TargetInfo.IsDummy)
+                    session.RemovePlayersExcept(id => entityTracker.IsCurrentPlayer((int)id));
+            }
         }
 
         private void RegisterTimedBuffEvent(BuffEvent buffEvent)
@@ -421,7 +453,21 @@ namespace AionDpsMeter.Services.Services.Session
             }
         }
 
+        /// <summary>Deletes saved fights against training dummies shorter than a minute; returns how many.</summary>
+        public int DeleteShortDummySessions()
+        {
+            lock (lockObject)
+            {
+                var dummies = GameDataProvider.Instance.Mobs.DummyNames;
+                var deleted = historyStore.DeleteShortSessions(dummies, TimeSpan.FromMinutes(1));
+                // Bests are cached per target; reload them from what's left.
+                foreach (var name in dummies) bossRecords.Remove(name);
+                return deleted;
+            }
+        }
+
         private readonly Dictionary<string, BossRecords> bossRecords = new();
+        private readonly SelfIdentifier selfIdentifier = new();
 
         private BossRecords GetBossRecords(string targetName)
         {

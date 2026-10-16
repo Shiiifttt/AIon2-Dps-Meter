@@ -371,6 +371,30 @@
         background: var(--accent-soft);
     }
 
+.action-button {
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--font-ui);
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+    .action-button:hover {
+        color: var(--text);
+        background: var(--panel-raised);
+    }
+
+    .action-button.is-danger {
+        color: var(--danger);
+        border-color: var(--danger);
+    }
+
 /* ---------------- Empty state (Skill Cooldowns placeholder) ---------------- */
 
 .settings-empty-state {

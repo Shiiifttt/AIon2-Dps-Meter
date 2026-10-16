@@ -167,15 +167,21 @@
                 </ValueSlot>
             </SettingRow>
 
-            <SettingRow Title="Cap Dummy Parses at 1 Minute" Description="Stop counting damage on training dummies after 60 seconds" IsLast="true">
+            <SettingRow Title="Cap Dummy Parses at 1 Minute" Description="Stop counting damage on training dummies after 60 seconds">
                 <ValueSlot>
                     <ToggleSwitch Checked="settings.OneMinuteDummyMode" CheckedChanged="v => { settings.OneMinuteDummyMode = v; }" />
                 </ValueSlot>
             </SettingRow>
 
+            <SettingRow Title="Only My Dummy Damage" Description="Ignore other players hitting training dummies. If the meter started mid-session, it works out who you are from your first few skills" IsLast="true">
+                <ValueSlot>
+                    <ToggleSwitch Checked="settings.OnlyMyDummyDamage" CheckedChanged="v => { settings.OnlyMyDummyDamage = v; }" />
+                </ValueSlot>
+            </SettingRow>
+
             <div class="settings-section-label settings-section-label--spaced">HISTORY</div>
 
-            <SettingRow Title="Keep History For" Description="Older encounters are automatically deleted after this many days" IsLast="true">
+            <SettingRow Title="Keep History For" Description="Older encounters are automatically deleted after this many days">
                 <ValueSlot>
                     <div class="number-field-wrap">
                         <input class="number-field" type="text" inputmode="numeric" maxlength="4"
@@ -183,6 +189,14 @@
                                @oninput="OnRetentionPeriodInput" />
                         <span class="number-field__suffix">days</span>
                     </div>
+                </ValueSlot>
+            </SettingRow>
+
+            <SettingRow Title="Delete Short Dummy Parses" Description="@DummyCleanupDescription" IsLast="true">
+                <ValueSlot>
+                    <button type="button" class="action-button @(_confirmDummyCleanup ? "is-danger" : "")" @onclick="OnDeleteShortDummyParses">
+                        @(_confirmDummyCleanup ? "Confirm delete" : "Delete")
+                    </button>
                 </ValueSlot>
             </SettingRow>
 

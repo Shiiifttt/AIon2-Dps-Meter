@@ -21,7 +21,7 @@ namespace AionDpsMeter.Services.Services.Session
         public Guid SessionId { get; } = Guid.NewGuid();
         public int TargetId { get; }
         public Mob TargetInfo { get; }
-        public DateTime SessionStart { get; }
+        public DateTime SessionStart { get; private set; }
         public DateTime LastHitTime { get; private set; }
         public DateTime? CompletedAt { get; private set; }
         public SessionState State { get; private set; } = SessionState.Active;
@@ -234,6 +234,24 @@ namespace AionDpsMeter.Services.Services.Session
                 .Select(s => s.LastHit!.Value)
                 .Cast<DateTime?>()
                 .Max();
+
+        /// <summary>
+        /// Drops everyone's damage except the players <paramref name="keep"/> accepts, and moves the
+        /// fight's start and end to the hits that are left.
+        /// </summary>
+        public void RemovePlayersExcept(Func<long, bool> keep)
+        {
+            foreach (var id in playerSessions.Keys.Where(id => !keep(id)).ToList())
+            {
+                playerSessions[id].Reset();
+                playerSessions.Remove(id);
+            }
+
+            var left = playerSessions.Values.Where(s => s.FirstHit.HasValue).ToList();
+            if (left.Count == 0) return;
+            SessionStart = left.Min(s => s.FirstHit!.Value);
+            LastHitTime = left.Max(s => s.LastHit!.Value);
+        }
 
         public void Reset()
         {

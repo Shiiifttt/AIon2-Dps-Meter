@@ -9,6 +9,7 @@ namespace AionDpsMeter.Services.Services.Settings
         bool BossOnlyCapture { get; set; }
         bool GroupSummonDamage { get; set; }
         bool OneMinuteDummyMode { get; set; }
+        bool OnlyMyDummyDamage { get; set; }
         bool ShowPlayerDeaths { get; set; }
         bool ShowBreakBars { get; set; }
         bool ShowBossPatterns { get; set; }

@@ -44,6 +44,14 @@ namespace AionDpsMeter.Services.Services.Entity
 
         public bool IsCurrentPlayer(int entityId) => sessionPlayers.TryGetValue(entityId, out var player) && player.IsUser;
 
+        public bool HasKnownUser => sessionPlayers.Values.Any(p => p.IsUser);
+
+        /// <summary>For when you're worked out from your own packets rather than told at login.</summary>
+        public void MarkAsUser(int sessionId)
+        {
+            if (sessionPlayers.TryGetValue(sessionId, out var player)) player.IsUser = true;
+        }
+
 
         public bool UpdateTargetEntityHpCurrent(int entityId, long hpCurrent)
         {
@@ -109,7 +117,7 @@ namespace AionDpsMeter.Services.Services.Entity
 
         public void CleanupUnidSessionPlayers()
         {
-            var toRemove = sessionPlayers.Where(r=>!r.Value.IsIdentified && r.Value.CreatedAt < DateTime.Now.AddMinutes(-10)).ToList();
+            var toRemove = sessionPlayers.Where(r=>!r.Value.IsIdentified && !r.Value.IsUser && r.Value.CreatedAt < DateTime.Now.AddMinutes(-10)).ToList();
             foreach (var kvp in toRemove) sessionPlayers.Remove(kvp.Key);
         }
 

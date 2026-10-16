@@ -9,7 +9,8 @@ namespace AionDpsMeter.Core.GameData.Repositories
     {
         private FrozenDictionary<int, MobData> mobsById = FrozenDictionary<int, MobData>.Empty;
 
-       
+        /// <summary>Names of training dummies, for matching saved fights (history keeps only the name).</summary>
+        public FrozenSet<string> DummyNames { get; private set; } = FrozenSet<string>.Empty;
 
         public void Load(string path)
         {
@@ -20,7 +21,10 @@ namespace AionDpsMeter.Core.GameData.Repositories
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var raw = JsonSerializer.Deserialize<Dictionary<int, MobData>>(json, options);
             if (raw is not null)
+            {
                 mobsById = raw.ToFrozenDictionary();
+                DummyNames = raw.Values.Where(m => m.isDummy).Select(m => m.Name).ToFrozenSet();
+            }
         }
 
         public bool IsKnownMob(int mobId) => mobsById.ContainsKey(mobId);
