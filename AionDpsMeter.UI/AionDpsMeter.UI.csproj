@@ -8,8 +8,8 @@
     <UseWPF>true</UseWPF>
     <AddRazorSupportForMvc>false</AddRazorSupportForMvc>
     <UseRazorSourceGenerator>true</UseRazorSourceGenerator>
-    <AssemblyVersion>1.11.8.325</AssemblyVersion>
-    <FileVersion>1.11.8.325</FileVersion>
+    <AssemblyVersion>1.11.9.326</AssemblyVersion>
+    <FileVersion>1.11.9.326</FileVersion>
     <ApplicationIcon>ICON_CH_SKILL_006.ico</ApplicationIcon>
   </PropertyGroup>
 
