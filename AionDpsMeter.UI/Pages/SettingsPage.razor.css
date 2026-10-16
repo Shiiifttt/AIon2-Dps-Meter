@@ -265,6 +265,41 @@
     opacity: 0.35;
 }
 
+/* Ultra compact: a short, narrow block of very thin rows */
+.style-option__preview--ultra::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    width: 55%;
+    height: 22px;
+    background: repeating-linear-gradient( to bottom, var(--text-dim) 0px, var(--text-dim) 2px, transparent 2px, transparent 5px );
+    opacity: 0.35;
+}
+
+/* Horizontal: a header line over equal side-by-side columns */
+.style-option__preview--horizontal::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    height: 3px;
+    background: var(--text-dim);
+    opacity: 0.5;
+}
+
+.style-option__preview--horizontal::after {
+    content: "";
+    position: absolute;
+    top: 15px;
+    left: 8px;
+    right: 8px;
+    height: 14px;
+    background: repeating-linear-gradient( to right, var(--text-dim) 0px, var(--text-dim) 18%, transparent 18%, transparent 20.5% );
+    opacity: 0.35;
+}
+
 /* Standard: fewer, taller rows with a header bar */
 .style-option__preview--standard::before {
     content: "";

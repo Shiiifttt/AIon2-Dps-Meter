@@ -70,7 +70,7 @@
 
             <div class="settings-section-label settings-section-label--spaced">WINDOW</div>
 
-            <SettingRow Title="Click-Through Meter" Description="Mouse clicks go through the meter to the game. To turn it off, right-click the meter's tray icon and untick Click-through">
+            <SettingRow Title="Click-Through Meter" Description="@ClickThroughDescription">
                 <ValueSlot>
                     <ToggleSwitch Checked="settings.MainClickThrough" CheckedChanged="v => { settings.MainClickThrough = v; }" />
                 </ValueSlot>
@@ -149,6 +149,21 @@
 
         @* ---------------- HOTKEYS ---------------- *@
         <section class="settings-group @(_activeGroup == "hotkeys" ? "" : "is-hidden")">
+
+            <SettingRow Title="Hold to Flip Click-Through" Description="While held, the meter does the opposite of the Click-Through Meter setting: clicks pass through it if it's off, or it can be clicked if it's on">
+                <ValueSlot>
+                    <div class="segmented">
+                        @foreach (var key in new[] { "None", "Ctrl", "Shift", "Alt" })
+                        {
+                            <button type="button"
+                                    class="segmented__option @(settings.ClickThroughHoldKey == key ? "is-selected" : "")"
+                                    @onclick="() => settings.ClickThroughHoldKey = key">
+                                @key
+                            </button>
+                        }
+                    </div>
+                </ValueSlot>
+            </SettingRow>
 
             <SettingRow Title="Toggle Visibility" Description="Click the field, then press the key combo you want to use" IsLast="true">
                 <ValueSlot>

@@ -11,6 +11,8 @@ namespace AionDpsMeter.Services.Services.Settings
         bool OneMinuteDummyMode { get; set; }
         bool OnlyMyDummyDamage { get; set; }
         bool MainClickThrough { get; set; }
+        /// <summary>"None", "Ctrl", "Shift" or "Alt": held to invert <see cref="MainClickThrough"/> while down.</summary>
+        string ClickThroughHoldKey { get; set; }
         bool ShowPlayerDeaths { get; set; }
         bool ShowBreakBars { get; set; }
         bool ShowBossPatterns { get; set; }

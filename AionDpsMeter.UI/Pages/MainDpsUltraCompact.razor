@@ -1,0 +1,28 @@
+@using System.Globalization
+@if (ViewModel != null)
+{
+    <div class="uc-meter">
+        <CompactMeterHeader ViewModel="@ViewModel" />
+
+        <div class="uc-players">
+            @foreach (var player in ViewModel.Players)
+            {
+                <div class="uc-row @ViewModel.GetIsUserClass(player)" title="@player.TotalDamageFormatted" @onclick="() => ViewModel.OpenPlayerDetails(player)">
+                    <div class="uc-bar @ViewModel.GetPlayerRowClass(player)" style="width:@($"{ViewModel.ClampPercent(player.EffectivePercentage).ToString("0.##", CultureInfo.InvariantCulture)}%")"></div>
+                    <div class="uc-data">
+                        <div class="uc-icon" style="background-image: url('/images/classes/@(player.ClassId).png');"></div>
+                        <span class="uc-name">@player.PlayerNameDisplay</span>
+                        <span class="uc-share">@player.DamagePercentage.ToString("0", CultureInfo.InvariantCulture)%</span>
+                        <span class="uc-dps">@player.DpsFormatted</span>
+                    </div>
+                    @if (ViewModel.ShowBreakBars)
+                    {
+                        <div class="uc-break" title="@player.BreakTooltip">
+                            <div class="uc-break-fill" style="width:@($"{ViewModel.ClampPercent(player.VisualBreakPercentage).ToString("0.##", CultureInfo.InvariantCulture)}%")"></div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}

@@ -6,7 +6,9 @@ using AionDpsMeter.UI.Pages;
 using AionDpsMeter.UI.ViewModels;
 using AionDpsMeter.UI.Views;
 using Microsoft.Extensions.DependencyInjection;
+using AionDpsMeter.UI.Services.Windowing.Native;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace AionDpsMeter.UI.Services.Windowing
 {
@@ -20,6 +22,12 @@ namespace AionDpsMeter.UI.Services.Windowing
         private bool IsBuffOverlayEnabled { get; set; }
         private bool IsSkillCdOverlayEnabled { get; set; }
         private bool IsMainClickThrough { get; set; }
+
+        // Holding the configured key inverts click-through for as long as it's held. A key-up can't be
+        // caught with RegisterHotKey, so the key state is polled.
+        private readonly DispatcherTimer _holdKeyTimer;
+        private bool _isHoldKeyDown;
+        private bool? _appliedMainClickThrough;
 
         // Windows that were visible when the meter was last hidden, so showing it brings them back too.
         private List<Window> _windowsHiddenWithMeter = [];
@@ -47,6 +55,12 @@ namespace AionDpsMeter.UI.Services.Windowing
             IsSkillCdOverlayEnabled = settingsService.SkillCdOverlaySettings.Enabled;
             IsMainClickThrough = settingsService.MainClickThrough;
             settingsService.SettingsChanged += SettingsChanged;
+
+            _holdKeyTimer = new DispatcherTimer(DispatcherPriority.Input, Application.Current.Dispatcher)
+            {
+                Interval = TimeSpan.FromMilliseconds(40)
+            };
+            _holdKeyTimer.Tick += (_, _) => PollClickThroughHoldKey();
         }
 
         private void SettingsChanged(object? sender, EventArgs e)
@@ -68,6 +82,8 @@ namespace AionDpsMeter.UI.Services.Windowing
                 IsMainClickThrough = settingsService.MainClickThrough;
                 ApplyMainClickThrough();
             }
+
+            UpdateHoldKeyPolling();
         }
 
         public void OpenRequiredWindows()
@@ -77,12 +93,51 @@ namespace AionDpsMeter.UI.Services.Windowing
             windowManager.SetClickThrough(WindowKey.BuffOverlay);
             windowManager.SetClickThrough(WindowKey.SkillCdOverlay);
             ApplyMainClickThrough();
+            UpdateHoldKeyPolling();
         }
 
         private void ApplyMainClickThrough()
         {
-            if (IsMainClickThrough) windowManager.SetClickThrough(WindowKey.Main);
+            var clickThrough = IsMainClickThrough != _isHoldKeyDown;
+            if (_appliedMainClickThrough == clickThrough) return;
+            _appliedMainClickThrough = clickThrough;
+
+            if (clickThrough) windowManager.SetClickThrough(WindowKey.Main);
             else windowManager.RestoreClickThrough(WindowKey.Main);
+        }
+
+        private static int HoldKeyToVirtualKey(string key) => key switch
+        {
+            "Ctrl" => 0x11,  // VK_CONTROL
+            "Shift" => 0x10, // VK_SHIFT
+            "Alt" => 0x12,   // VK_MENU
+            _ => 0
+        };
+
+        private void UpdateHoldKeyPolling()
+        {
+            if (HoldKeyToVirtualKey(settingsService.ClickThroughHoldKey) != 0)
+            {
+                _holdKeyTimer.Start();
+                return;
+            }
+
+            _holdKeyTimer.Stop();
+            if (_isHoldKeyDown)
+            {
+                _isHoldKeyDown = false;
+                ApplyMainClickThrough();
+            }
+        }
+
+        private void PollClickThroughHoldKey()
+        {
+            var vk = HoldKeyToVirtualKey(settingsService.ClickThroughHoldKey);
+            var isDown = vk != 0 && (NativeMethods.GetAsyncKeyState(vk) & 0x8000) != 0;
+            if (isDown == _isHoldKeyDown) return;
+
+            _isHoldKeyDown = isDown;
+            ApplyMainClickThrough();
         }
 
         /// <summary>Hides the meter (and every other open window) to the tray, or brings them back.</summary>

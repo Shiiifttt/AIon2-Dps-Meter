@@ -534,6 +534,22 @@ namespace AionDpsMeter.Services.Services.Settings
             }
         }
 
+        public string ClickThroughHoldKey
+        {
+            get { lock (_lock) return _data.ClickThroughHoldKey; }
+            set
+            {
+                bool changed;
+                lock (_lock)
+                {
+                    changed = _data.ClickThroughHoldKey != value;
+                    _data.ClickThroughHoldKey = value;
+                    if (changed) Save();
+                }
+                if (changed) SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         private AppSettingsData Load()
         {
             try
@@ -609,6 +625,9 @@ namespace AionDpsMeter.Services.Services.Settings
 
             [JsonPropertyName("mainClickThrough")]
             public bool MainClickThrough { get; set; }
+
+            [JsonPropertyName("clickThroughHoldKey")]
+            public string ClickThroughHoldKey { get; set; } = "Ctrl";
 
             [JsonPropertyName("showPlayerDeaths")]
             public bool ShowPlayerDeaths { get; set; } = true;

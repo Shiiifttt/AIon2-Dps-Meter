@@ -31,6 +31,7 @@ namespace AionDpsMeter.UI.Views
             _saveBoundsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(5000) };
             _saveBoundsTimer.Tick += (_, _) => { _saveBoundsTimer.Stop(); SaveWindowBounds(); };
 
+            ApplyLayoutMinSize();
             RestoreWindowBounds();
 
             MainBorder.Opacity = settingsService.WindowOpacity;
@@ -38,6 +39,7 @@ namespace AionDpsMeter.UI.Views
             settingsService.SettingsChanged += (_, _) =>
                 Dispatcher.InvokeAsync(() =>
                 {
+                    ApplyLayoutMinSize();
                     MainBorder.Opacity = settingsService.WindowOpacity;
                     RegisterToggleHotkey();
                 });
@@ -83,6 +85,17 @@ namespace AionDpsMeter.UI.Views
         }
 
         private void ToggleWindowVisibility() => windowHelper.ToggleMeterVisibility();
+
+        // The ultra compact (3) and horizontal (4) layouts fit in a much smaller window than the others.
+        private void ApplyLayoutMinSize()
+        {
+            (MinWidth, MinHeight) = settingsService.UiStyle switch
+            {
+                3 => (150, 20),
+                4 => (200, 40),
+                _ => (370, 50)
+            };
+        }
 
         // ShowInTaskbar="False" keeps the meter off the taskbar; the tool-window style also keeps it
         // out of Alt+Tab. It lives in the tray instead (TrayIcon).

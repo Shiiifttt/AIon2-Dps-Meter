@@ -1,0 +1,34 @@
+@using System.Globalization
+@if (ViewModel != null)
+{
+    var slots = GetSlotPlayers();
+
+    <div class="hz-meter">
+        <CompactMeterHeader ViewModel="@ViewModel" />
+
+        <div class="hz-slots" style="grid-template-columns: repeat(@Math.Max(1, slots.Count), minmax(0, 1fr));">
+            @foreach (var player in slots)
+            {
+                <div class="hz-slot @ViewModel.GetIsUserClass(player)" title="@player.TotalDamageFormatted" @onclick="() => ViewModel.OpenPlayerDetails(player)">
+                    <div class="hz-bar @ViewModel.GetPlayerRowClass(player)" style="width:@($"{ViewModel.ClampPercent(player.EffectivePercentage).ToString("0.##", CultureInfo.InvariantCulture)}%")"></div>
+                    <div class="hz-data">
+                        <div class="hz-line">
+                            <div class="hz-icon" style="background-image: url('/images/classes/@(player.ClassId).png');"></div>
+                            <span class="hz-name">@player.PlayerNameDisplay</span>
+                        </div>
+                        <div class="hz-line">
+                            <span class="hz-dps">@player.DpsFormatted</span>
+                            <span class="hz-share">@player.DamagePercentage.ToString("0", CultureInfo.InvariantCulture)%</span>
+                        </div>
+                    </div>
+                    @if (ViewModel.ShowBreakBars)
+                    {
+                        <div class="hz-break" title="@player.BreakTooltip">
+                            <div class="hz-break-fill" style="width:@($"{ViewModel.ClampPercent(player.VisualBreakPercentage).ToString("0.##", CultureInfo.InvariantCulture)}%")"></div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}

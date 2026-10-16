@@ -1,0 +1,40 @@
+@using System.Globalization
+@using AionDpsMeter.UI.ViewModels
+
+@* One-line header + thin HP bar shared by the Ultra Compact and Horizontal layouts. *@
+<div class="cm-header" @onmousedown="ViewModel.BeginDrag">
+    <span class="cm-boss" title="@ViewModel.ActiveTargetName">@ViewModel.ActiveTargetName</span>
+    <span class="cm-stats">
+        @if (ViewModel.HasActiveTarget)
+        {
+            <span class="cm-hp" title="@HpTooltip">@ViewModel.ClampPercent(ViewModel.ActiveTargetHpPercentage).ToString("0", CultureInfo.InvariantCulture)%</span>
+            @if (ViewModel.FrenzyBeforeKill)
+            {
+                <FrenzyWarningIcon Tooltip="@ViewModel.FrenzyWarningTooltip" />
+            }
+        }
+        <span class="cm-time">@ViewModel.CombatDuration</span>
+        <span class="cm-total">@ViewModel.TotalRaidDamageFormatted</span>
+    </span>
+    <span class="cm-controls">
+        <button type="button" class="cm-btn" @onclick="ViewModel.OpenHistory" @onmousedown:stopPropagation="true" title="History">☰</button>
+        <button type="button" class="cm-btn" @onclick="ViewModel.OpenSettings" @onmousedown:stopPropagation="true" title="Settings">⚙</button>
+        <button type="button" class="cm-btn" @onclick="ViewModel.Minimize" @onmousedown:stopPropagation="true" title="Hide">_</button>
+        <button type="button" class="cm-btn" @onclick="ViewModel.Close" @onmousedown:stopPropagation="true" title="Close">✕</button>
+    </span>
+</div>
+
+@if (ViewModel.HasActiveTarget)
+{
+    <div class="cm-hp-track">
+        <div class="cm-hp-fill" style="width:@($"{ViewModel.ClampPercent(ViewModel.ActiveTargetHpPercentage).ToString("0.##", CultureInfo.InvariantCulture)}%")"></div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public MainDpsViewModel ViewModel { get; set; } = null!;
+
+    private string HpTooltip => string.IsNullOrEmpty(ViewModel.TimeToKillDisplay)
+        ? ViewModel.ActiveTargetHpDisplay
+        : $"{ViewModel.ActiveTargetHpDisplay} · {ViewModel.TimeToKillDisplay}";
+}

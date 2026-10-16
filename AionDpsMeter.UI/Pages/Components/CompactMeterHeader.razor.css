@@ -1,0 +1,99 @@
+.cm-header {
+    position: relative;
+    flex: 0 0 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 5px;
+    background: rgba(15, 15, 20, 0.8);
+    border-radius: 3px;
+    white-space: nowrap;
+    cursor: move;
+    box-sizing: border-box;
+}
+
+.cm-boss {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fdfdfd;
+    font-size: 10px;
+    font-weight: 700;
+    text-shadow: 0 1px 2px #000;
+}
+
+.cm-stats {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+}
+
+.cm-hp {
+    color: #ff5252;
+    font-weight: 600;
+}
+
+.cm-time {
+    color: #9ca3b2;
+}
+
+.cm-total {
+    color: #4ade80;
+    font-weight: 800;
+}
+
+/* Buttons only show while hovering the header, covering the stats. */
+.cm-controls {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    align-items: center;
+    gap: 2px;
+    padding: 0 4px 0 8px;
+    background: rgba(15, 15, 20, 0.95);
+    border-radius: 3px;
+}
+
+.cm-header:hover .cm-controls {
+    display: inline-flex;
+}
+
+.cm-btn {
+    appearance: none;
+    border: 0;
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    background: transparent;
+    color: #9ca3b2;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .cm-btn:hover {
+        color: #fff;
+    }
+
+.cm-hp-track {
+    flex: 0 0 2px;
+    height: 2px;
+    background: rgba(15, 15, 20, 0.8);
+    overflow: hidden;
+}
+
+.cm-hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #c62828, #ff5252);
+}

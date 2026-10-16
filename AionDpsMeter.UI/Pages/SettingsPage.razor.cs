@@ -50,6 +50,8 @@ namespace AionDpsMeter.UI.Pages
     {
         new(1, "Standard", "standard"),
         new(2, "Compact", "compact"),
+        new(3, "Ultra Compact", "ultra"),
+        new(4, "Horizontal", "horizontal"),
     };
 
         private readonly List<OrderOption> _orderOptions = new()
@@ -160,6 +162,11 @@ namespace AionDpsMeter.UI.Pages
         }
 
         private void SetUiStyle(int value) => settings.UiStyle = value;
+
+        private string ClickThroughDescription =>
+            settings.ClickThroughHoldKey is "Ctrl" or "Shift" or "Alt"
+                ? $"Mouse clicks go through the meter to the game. Hold {settings.ClickThroughHoldKey} to click the meter anyway, or turn this off from the tray icon's right-click menu"
+                : "Mouse clicks go through the meter to the game. To turn it off, right-click the meter's tray icon and untick Click-through";
 
         private void OnRetentionPeriodInput(ChangeEventArgs e)
         {
