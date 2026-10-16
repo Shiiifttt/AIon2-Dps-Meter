@@ -16,6 +16,8 @@ namespace AionDpsMeter.UI.Views
     {
         private readonly IAppSettingsService settingsService;
         private DispatcherTimer? _saveBoundsTimer;
+        private readonly DispatcherTimer _hoverWatchTimer;
+        private bool _cursorWasOver;
         private GlobalHotkey? _globalHotkey;
         private readonly IWindowManagerService windowManager;
         private readonly WindowHelper windowHelper;
@@ -44,7 +46,11 @@ namespace AionDpsMeter.UI.Views
                     RegisterToggleHotkey();
                 });
 
+            _hoverWatchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            _hoverWatchTimer.Tick += (_, _) => WatchMouseLeave();
+
             SourceInitialized += (_, _) => HideFromAltTab();
+            Loaded += (_, _) => _hoverWatchTimer.Start();
             Loaded += (_, _) => RegisterToggleHotkey();
             Loaded += (_, _) => InitializeStyle2WebView();
             windowManager.CloseAppCommand += OnCloseCommand;
@@ -85,6 +91,19 @@ namespace AionDpsMeter.UI.Views
         }
 
         private void ToggleWindowVisibility() => windowHelper.ToggleMeterVisibility();
+
+        // WebView2 doesn't always notice the mouse leaving (e.g. when click-through flips while hovering),
+        // leaving hover effects and tooltips stuck. Watch the cursor ourselves and tell it.
+        private void WatchMouseLeave()
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero || !IsVisible) return;
+
+            var isOver = NativeWindowHelper.IsCursorOver(hwnd);
+            if (_cursorWasOver && !isOver)
+                NativeWindowHelper.SendMouseLeave(hwnd);
+            _cursorWasOver = isOver;
+        }
 
         // The ultra compact (3) and horizontal (4) layouts fit in a much smaller window than the others.
         private void ApplyLayoutMinSize()
@@ -153,6 +172,7 @@ namespace AionDpsMeter.UI.Views
         protected override void OnClosed(EventArgs e)
         {
             _saveBoundsTimer?.Stop();
+            _hoverWatchTimer.Stop();
             _saveBoundsTimer = null;
             SaveWindowBounds();
             if (DataContext is MainViewModel viewModel)

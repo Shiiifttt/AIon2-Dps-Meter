@@ -375,6 +375,24 @@ namespace AionDpsMeter.Services.Services.Session
             lock (lockObject) { ResetInternal(); }
         }
 
+        /// <summary>
+        /// The meter's reset button: ends and saves any fight in progress (boss fights go to history),
+        /// then clears the meter. Unlike <see cref="Reset"/> it keeps the stat snapshot and active buffs.
+        /// </summary>
+        public void ResetMeter()
+        {
+            lock (lockObject)
+            {
+                foreach (var entry in targetEntries.Values)
+                {
+                    entry.CompleteActiveSession();
+                    entry.Reset();
+                }
+                targetEntries.Clear();
+                targetResolver.Reset();
+            }
+        }
+
         public void CompleteAndPersistActiveSessions(DateTime? at = null)
         {
             lock (lockObject)

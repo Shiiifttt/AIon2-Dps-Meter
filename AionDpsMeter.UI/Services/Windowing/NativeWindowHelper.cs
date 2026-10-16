@@ -23,6 +23,22 @@ internal static class NativeWindowHelper
     public static void SetEnabled(IntPtr hwnd, bool enabled) =>
         NativeMethods.EnableWindow(hwnd, enabled);
 
+    public static bool IsCursorOver(IntPtr hwnd) =>
+        NativeMethods.GetCursorPos(out var cursor) &&
+        NativeMethods.GetWindowRect(hwnd, out var rect) &&
+        cursor.X >= rect.Left && cursor.X < rect.Right &&
+        cursor.Y >= rect.Top && cursor.Y < rect.Bottom;
+
+    /// <summary>
+    /// Tells every child window (the WebView2 ones included) that the mouse has left. WebView2 sometimes
+    /// misses the real one, e.g. when click-through flips while hovering, and keeps :hover and tooltips stuck.
+    /// </summary>
+    public static void SendMouseLeave(IntPtr hwnd)
+    {
+        foreach (var child in GetChildWindows(hwnd))
+            NativeMethods.PostMessage(child, NativeMethods.WM_MOUSELEAVE, IntPtr.Zero, IntPtr.Zero);
+    }
+
     public static IReadOnlyList<IntPtr> GetChildWindows(IntPtr parent)
     {
         var children = new List<IntPtr>();

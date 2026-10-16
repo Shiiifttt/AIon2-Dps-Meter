@@ -287,6 +287,15 @@ namespace AionDpsMeter.UI.ViewModels
 
         public void OpenSettings() => windowHelper.OpenSettings();
         public void Minimize() => windowHelper.HideMeter();
+
+        public void ResetMeter()
+        {
+            sessionManager.ResetMeter();
+            // The refresh loop keeps the last target's name once there's no target, so clear it here.
+            ActiveTargetName = string.Empty;
+            ActiveTargetHpDisplay = string.Empty;
+            onStateChanged.Invoke();
+        }
         public void Close() => windowManager.CloseApplication();
         public void OpenPlayerDetails(PlayerRenderState player) => windowHelper.OpenPlayerDetails(player);
 
