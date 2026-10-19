@@ -17,6 +17,7 @@ namespace AionDpsMeter.UI.Services.Windowing
 
         private readonly ToolStripMenuItem _showHideItem;
         private readonly ToolStripMenuItem _clickThroughItem;
+        private readonly ToolStripMenuItem _petCollectionItem;
 
         public TrayIcon(WindowHelper windowHelper, IAppSettingsService settingsService, IWindowManagerService windowManager)
         {
@@ -30,6 +31,8 @@ namespace AionDpsMeter.UI.Services.Windowing
             var menu = new ContextMenuStrip();
             menu.Items.Add(_showHideItem);
             menu.Items.Add(_clickThroughItem);
+            _petCollectionItem = new ToolStripMenuItem("Pet collection", null, (_, _) => OpenPetCollection());
+            menu.Items.Add(_petCollectionItem);
             menu.Items.Add(new ToolStripMenuItem("Settings", null, (_, _) => OpenSettings()));
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Exit", null, (_, _) => windowManager.CloseApplication()));
@@ -53,6 +56,7 @@ namespace AionDpsMeter.UI.Services.Windowing
         {
             _showHideItem.Text = windowHelper.IsMeterVisible ? "Hide meter" : "Show meter";
             _clickThroughItem.Checked = settingsService.MainClickThrough;
+            _petCollectionItem.Visible = settingsService.TrackPetCollection;
         }
 
         private void OpenSettings()
@@ -60,6 +64,13 @@ namespace AionDpsMeter.UI.Services.Windowing
             if (!windowHelper.IsMeterVisible)
                 windowHelper.ToggleMeterVisibility();
             windowHelper.OpenSettings();
+        }
+
+        private void OpenPetCollection()
+        {
+            if (!windowHelper.IsMeterVisible)
+                windowHelper.ToggleMeterVisibility();
+            windowHelper.OpenPetCollection();
         }
 
         private static Icon LoadAppIcon()

@@ -22,4 +22,8 @@ public static class PacketOpcodes
     public const ushort CombatState = 0x8D21;         // 21 8D
     public const ushort SkillUse = 0x3802;            // 02 38
     public const ushort SkillCast = 0x3809;           // 09 38
+    public const ushort PetCollection = 0x9000;       // 00 90
+    public const ushort PetSoulsGained = 0x900D;      // 0D 90
+    public const ushort PetSoulsSpent = 0x900E;       // 0E 90
+    public const ushort PetRankChanged = 0x9014;      // 14 90
 }

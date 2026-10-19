@@ -127,7 +127,7 @@
                 </ValueSlot>
             </SettingRow>
 
-            <SettingRow Title="Show Break Bars" Description="Purple bar under each row: share of the boss stagger gauge since its last break">
+            <SettingRow Title="Show Stagger Bars" Description="Purple bar under each row: share of the boss stagger gauge since the boss was last staggered">
                 <ValueSlot>
                     <ToggleSwitch Checked="settings.ShowBreakBars" CheckedChanged="v => { settings.ShowBreakBars = v; }" />
                 </ValueSlot>
@@ -136,6 +136,12 @@
             <SettingRow Title="Show Boss Pattern Timers" Description="Bars under the boss HP that fill until a boss skill is expected, then hold until it's cast. Learns from every fight">
                 <ValueSlot>
                     <ToggleSwitch Checked="settings.ShowBossPatterns" CheckedChanged="v => { settings.ShowBossPatterns = v; }" />
+                </ValueSlot>
+            </SettingRow>
+
+            <SettingRow Title="Track Pet Collection" Description="Counts pet souls and ranks per character; open it from the tray menu. Log into your character after turning this on to load your collection">
+                <ValueSlot>
+                    <ToggleSwitch Checked="settings.TrackPetCollection" CheckedChanged="v => { settings.TrackPetCollection = v; }" />
                 </ValueSlot>
             </SettingRow>
 

@@ -16,6 +16,7 @@ namespace AionDpsMeter.Services.Services.Settings
         bool ShowPlayerDeaths { get; set; }
         bool ShowBreakBars { get; set; }
         bool ShowBossPatterns { get; set; }
+        bool TrackPetCollection { get; set; }
         int HistoryRetantionPeriod { get; set; }
         double WindowOpacity { get; set; }
         string? BackgroundImagePath { get; set; }

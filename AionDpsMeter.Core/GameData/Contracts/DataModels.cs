@@ -19,4 +19,19 @@ namespace AionDpsMeter.Core.GameData.Contracts
         public bool isDummy { get; set; }
     }
 
+    public sealed class PetData
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        /// <summary>Fera, Natura, Cogni, Varian or Special.</summary>
+        public string Genus { get; set; } = string.Empty;
+        /// <summary>Souls drop from mobs (the rest come from shops, events and the like).</summary>
+        public bool Farmable { get; set; }
+    }
+
+    public sealed class PetsFile
+    {
+        public List<PetData> Pets { get; set; } = [];
+    }
+
 }

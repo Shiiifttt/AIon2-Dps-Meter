@@ -1,0 +1,104 @@
+@page "/pets"
+@using AionDpsMeter.Services.Services.Pets
+
+<div class="pets-shell">
+
+    <header class="pets-header">
+        <div class="pets-title" @onmousedown="BeginDrag">
+            <span class="pets-title__mark"></span>
+            <h1>Pet Collection</h1>
+            @if (!string.IsNullOrEmpty(_view.Character))
+            {
+                <span class="pets-character">@_view.Character</span>
+            }
+        </div>
+        <button type="button" class="pets-close" aria-label="Close pet collection" title="Close" @onclick="CloseWindow">
+            <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+                <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+            </svg>
+        </button>
+    </header>
+
+    <div class="pets-status pets-status--@_view.Status.ToString().ToLowerInvariant()" title="@StatusHint">
+        <span class="pets-status__dot"></span>
+        <span class="pets-status__text">@StatusText</span>
+        @if (_view.Status != PetCollectionStatus.Waiting)
+        {
+            <span class="pets-status__totals">@Owned/@_view.Pets.Count owned · @Maxed max</span>
+        }
+    </div>
+
+    <div class="pets-controls">
+        <div class="pets-search">
+            <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                <circle cx="7" cy="7" r="5.2" stroke="currentColor" stroke-width="1.3" fill="none" />
+                <path d="M11 11L15 15" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+            </svg>
+            <input type="text" placeholder="Search pets…" value="@_search" @oninput="e => _search = e.Value?.ToString() ?? string.Empty" />
+        </div>
+        <div class="pets-filters">
+            @foreach (var genus in Genera)
+            {
+                <button type="button" class="pets-chip @(genus == _genus ? "is-active" : "")" @onclick="() => _genus = genus">
+                    @if (genus != AllGenera)
+                    {
+                        <span class="pets-genus-dot" style="background:@GenusColor(genus)"></span>
+                    }
+                    @genus
+                </button>
+            }
+        </div>
+        <div class="pets-options">
+            <label class="pets-check"><input type="checkbox" @bind="_hideMaxed" /> Hide maxed</label>
+            <label class="pets-check"><input type="checkbox" @bind="_farmableOnly" /> Farmable only</label>
+            <button type="button" class="pets-sort" title="Change sort order" @onclick="() => _sortByNeeded = !_sortByNeeded">
+                @(_sortByNeeded ? "Sort: closest to rank" : "Sort: name")
+            </button>
+        </div>
+    </div>
+
+    <div class="pets-body">
+        @if (_view.RecentGains.Count > 0)
+        {
+            <section class="pets-section">
+                <h2>Recent souls</h2>
+                @foreach (var gain in _view.RecentGains.Take(5))
+                {
+                    <div class="pets-recent">
+                        <span class="pets-recent__time">@gain.At.ToLocalTime().ToString("HH:mm")</span>
+                        <span class="pets-recent__amount">+@gain.Amount</span>
+                        <span class="pets-recent__name">@gain.Name</span>
+                        <span class="pets-recent__count">@CountText(gain.Rank, gain.Souls)</span>
+                    </div>
+                }
+            </section>
+        }
+
+        <section class="pets-section">
+            <h2>Pets <span class="pets-section__count">@VisiblePets.Count</span></h2>
+            @foreach (var pet in VisiblePets)
+            {
+                var goal = pet.Goal;
+                var ready = goal is { } g && pet.Souls >= g;
+                <div class="pets-row @(pet.Rank == 0 && pet.Souls == 0 ? "is-locked" : "") @(goal is null ? "is-max" : "")">
+                    <span class="pets-row__genus" style="background:@GenusColor(pet.Genus)" title="@pet.Genus"></span>
+                    <span class="pets-row__name" title="@($"{pet.Name} ({pet.Id})")">@pet.Name</span>
+                    <span class="pets-row__rank" title="Rank @pet.Rank of 3">
+                        @for (var i = 1; i <= 3; i++)
+                        {
+                            <span class="pets-pip @(i <= pet.Rank ? "is-on" : "")"></span>
+                        }
+                    </span>
+                    <span class="pets-row__bar">
+                        <span class="pets-row__fill @(ready ? "is-ready" : "")" style="width:@(Percent(pet))%"></span>
+                    </span>
+                    <span class="pets-row__count @(ready ? "is-ready" : "")" title="@RowHint(pet)">@CountText(pet.Rank, pet.Souls)</span>
+                </div>
+            }
+            @if (VisiblePets.Count == 0)
+            {
+                <p class="pets-empty">No pets match.</p>
+            }
+        </section>
+    </div>
+</div>

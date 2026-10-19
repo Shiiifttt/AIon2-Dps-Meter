@@ -83,6 +83,9 @@ namespace AionDpsMeter.UI.Services.Windowing
                 ApplyMainClickThrough();
             }
 
+            if (!settingsService.TrackPetCollection)
+                windowManager.Close(WindowKey.PetCollection);
+
             UpdateHoldKeyPolling();
         }
 
@@ -202,6 +205,16 @@ namespace AionDpsMeter.UI.Services.Windowing
             WindowStateUpdated?.Invoke(this, EventArgs.Empty);
             windowManager.Hide(WindowKey.Settings);
         }
+        public void OpenPetCollection()
+        {
+            var win = new BlazorWindow(App.AppHost.Services, typeof(PetCollectionPage))
+            {
+                Width = 440,
+                Height = 680,
+            };
+            windowManager.Open(WindowKey.PetCollection, win, isSingleton: true, owner: MainWindow, persistenceMode: WindowPersistenceMode.OnlyPosition);
+        }
+
         public void OpenHistory()
         {
             var historyWindow = new HistoryWindow(sessionManager, settingsService)

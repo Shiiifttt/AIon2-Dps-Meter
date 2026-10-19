@@ -299,6 +299,22 @@ namespace AionDpsMeter.Services.Services.Settings
             }
         }
 
+        public bool TrackPetCollection
+        {
+            get { lock (_lock) return _data.TrackPetCollection; }
+            set
+            {
+                bool changed;
+                lock (_lock)
+                {
+                    changed = _data.TrackPetCollection != value;
+                    _data.TrackPetCollection = value;
+                    if (changed) Save();
+                }
+                if (changed) SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         public bool IsPacketLoggingEnabled
         {
             get { lock (_lock) return _data.IsPacketLoggingEnabled; }
@@ -637,6 +653,9 @@ namespace AionDpsMeter.Services.Services.Settings
 
             [JsonPropertyName("showBossPatterns")]
             public bool ShowBossPatterns { get; set; }
+
+            [JsonPropertyName("trackPetCollection")]
+            public bool TrackPetCollection { get; set; }
 
             [JsonPropertyName("playerRowScale")]
             public double PlayerRowScale { get; set; } = 1.0;

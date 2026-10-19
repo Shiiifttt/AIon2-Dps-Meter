@@ -9,6 +9,9 @@ namespace AionDpsMeter.Services.Services.Entity
         // Fired when a summon is registered: (summonId, ownerId)
         public event Action<int, int>? SummonRegistered;
 
+        // Fired when the local character is known: (name, server name, which may be empty)
+        public event Action<string, string>? UserIdentified;
+
         public List<Player> PlayerEntities => sessionPlayers.Values.ToList();
         public List<Mob> TargetEntities => targetEntities.Values.ToList();
         public int PlayerEntityCount => sessionPlayers.Count;
@@ -49,7 +52,9 @@ namespace AionDpsMeter.Services.Services.Entity
         /// <summary>For when you're worked out from your own packets rather than told at login.</summary>
         public void MarkAsUser(int sessionId)
         {
-            if (sessionPlayers.TryGetValue(sessionId, out var player)) player.IsUser = true;
+            if (!sessionPlayers.TryGetValue(sessionId, out var player)) return;
+            player.IsUser = true;
+            if (player.IsIdentified) UserIdentified?.Invoke(player.Name, player.ServerName);
         }
 
 
@@ -141,6 +146,7 @@ namespace AionDpsMeter.Services.Services.Entity
 
             if (isUser) SetCurrentUser(name);
             TryFallbackLinkByName(name);
+            if (isUser) UserIdentified?.Invoke(name, player.ServerName);
         }
 
         public Player? GetPlayerEntity(int sessionId) => sessionPlayers.GetValueOrDefault(sessionId);
