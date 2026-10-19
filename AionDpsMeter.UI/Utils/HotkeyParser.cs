@@ -34,8 +34,7 @@ namespace AionDpsMeter.UI.Utils
                     case "ALT":   mods |= MOD_ALT;   break;
                     case "WIN":   mods |= MOD_WIN;   break;
                     default:
-                        if (Enum.TryParse<Key>(part, ignoreCase: true, out var k))
-                            mainKey = k;
+                        mainKey = ParseKey(part);
                         break;
                 }
             }
@@ -45,6 +44,30 @@ namespace AionDpsMeter.UI.Utils
 
             var vk = (uint)KeyInterop.VirtualKeyFromKey(mainKey);
             return (mods, vk);
+        }
+
+        // Browser (KeyboardEvent.key / .code) names that differ from WPF's Key enum names.
+        private static readonly Dictionary<string, Key> BrowserKeyNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ArrowUp"] = Key.Up, ["ArrowDown"] = Key.Down, ["ArrowLeft"] = Key.Left, ["ArrowRight"] = Key.Right,
+            [" "] = Key.Space, ["Minus"] = Key.OemMinus, ["Equal"] = Key.OemPlus, ["Comma"] = Key.OemComma,
+            ["Period"] = Key.OemPeriod, ["Slash"] = Key.OemQuestion, ["Semicolon"] = Key.OemSemicolon,
+            ["Quote"] = Key.OemQuotes, ["BracketLeft"] = Key.OemOpenBrackets, ["BracketRight"] = Key.OemCloseBrackets,
+            ["Backslash"] = Key.OemPipe, ["Backquote"] = Key.OemTilde, ["NumpadAdd"] = Key.Add,
+            ["NumpadSubtract"] = Key.Subtract, ["NumpadMultiply"] = Key.Multiply, ["NumpadDivide"] = Key.Divide,
+            ["NumpadDecimal"] = Key.Decimal, ["NumpadEnter"] = Key.Enter,
+        };
+
+        private static Key ParseKey(string name)
+        {
+            if (BrowserKeyNames.TryGetValue(name, out var key)) return key;
+
+            // "1" would otherwise parse as the enum's numeric value (Key 1 = Cancel), not the 1 key.
+            if (name.Length == 1 && char.IsDigit(name[0])) return Key.D0 + (name[0] - '0');
+
+            // "Numpad1" -> NumPad1 (Enum.TryParse is case-insensitive).
+            if (name.All(char.IsDigit)) return Key.None;
+            return Enum.TryParse<Key>(name, ignoreCase: true, out var k) ? k : Key.None;
         }
     }
 }

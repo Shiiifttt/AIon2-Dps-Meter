@@ -5,6 +5,7 @@ using AionDpsMeter.Services.Services.Settings;
 using AionDpsMeter.Services.Services.Update;
 using AionDpsMeter.Core.Windowing;
 using AionDpsMeter.UI.Services.Windowing;
+using AionDpsMeter.UI.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
@@ -227,7 +228,16 @@ namespace AionDpsMeter.UI.Pages
             if (e.ShiftKey) parts.Add("Shift");
             if (e.AltKey) parts.Add("Alt");
 
-            var keyName = e.Key.Length == 1 ? e.Key.ToUpperInvariant() : e.Key;
+            // Use the physical key (e.Code) so Shift+1 is "1", not "!", and name it the way HotkeyParser reads it.
+            var keyName = e.Code switch
+            {
+                { Length: 4 } c when c.StartsWith("Key") => c[3..],             // KeyD -> D
+                { Length: 6 } c when c.StartsWith("Digit") => c[5..],           // Digit1 -> 1
+                { } c when c.StartsWith("Arrow") => c[5..],                      // ArrowDown -> Down
+                { Length: > 0 } c => c,                                          // F5, Numpad1, PageDown, Minus...
+                _ => e.Key.Length == 1 ? e.Key.ToUpperInvariant() : e.Key
+            };
+            if (HotkeyParser.Parse(keyName).vk == 0) return; // a key we can't register; keep listening
             parts.Add(keyName);
 
             settings.ToggleVisibilityHotkey = string.Join("+", parts);

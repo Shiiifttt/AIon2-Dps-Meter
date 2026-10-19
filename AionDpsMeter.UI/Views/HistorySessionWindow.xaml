@@ -126,7 +126,7 @@
                             <Border Style="{StaticResource TitleMetaPillStyle}"
                                     Visibility="{Binding HasBreak, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock FontSize="10">
-                                    <Run Text="Break " Foreground="{StaticResource SecondaryTextBrush}"/>
+                                    <Run Text="Stagger " Foreground="{StaticResource SecondaryTextBrush}"/>
                                     <Run Text="{Binding TotalBreakDisplay, Mode=OneWay}" Foreground="#B388FF" FontWeight="Bold"/>
                                 </TextBlock>
                             </Border>
@@ -170,7 +170,7 @@
                     <TextBlock Grid.Column="5" Text="Back%" FontSize="10" FontWeight="Bold" Foreground="{StaticResource BackAttackColorBrush}" HorizontalAlignment="Center"/>
                     <TextBlock Grid.Column="6" Text="x2%" FontSize="10" FontWeight="Bold" Foreground="{StaticResource DoubleDamageColorBrush}" HorizontalAlignment="Center"/>
                     <TextBlock Grid.Column="7" Text="Uptime" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Center"/>
-                    <TextBlock Grid.Column="8" Text="Break" FontSize="10" FontWeight="Bold" Foreground="#B388FF" HorizontalAlignment="Center"/>
+                    <TextBlock Grid.Column="8" Text="Stagger" FontSize="10" FontWeight="Bold" Foreground="#B388FF" HorizontalAlignment="Center"/>
                     <TextBlock Grid.Column="9" Text="Share" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Right"/>
                 </Grid>
             </Border>

@@ -205,7 +205,7 @@ namespace AionDpsMeter.UI.ViewModels
                 double diffBreak = targetBreak - player.VisualBreakPercentage;
                 if (diffBreak < 0 || Math.Abs(diffBreak) < 0.05) player.VisualBreakPercentage = targetBreak;
                 else player.VisualBreakPercentage += diffBreak * 0.25;
-                player.BreakTooltip = $"Break: {stat.CycleBreak:0.#} this gauge, {stat.TotalBreak:0.#} total";
+                player.BreakTooltip = $"Stagger: {stat.CycleBreak:0.#} this gauge, {stat.TotalBreak:0.#} total";
 
                 uiNeedsUpdate = true;
             }
