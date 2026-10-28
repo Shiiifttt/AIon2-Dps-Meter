@@ -29,6 +29,14 @@ namespace AionDpsMeter.Core.GameData.Contracts
         public bool Farmable { get; set; }
     }
 
+    /// <summary>pet_sources.json: which monsters (by mob code) drop each pet's souls.</summary>
+    public sealed class PetSourcesFile
+    {
+        public string Source { get; set; } = string.Empty;
+        /// <summary>Pet id (as text, JSON keys) -> mob codes.</summary>
+        public Dictionary<string, int[]> Pets { get; set; } = [];
+    }
+
     public sealed class PetsFile
     {
         public List<PetData> Pets { get; set; } = [];

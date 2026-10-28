@@ -15,7 +15,11 @@ namespace AionDpsMeter.Services.Services.Entity
         /// <summary>Any entity died (entity id).</summary>
         public event Action<int>? EntityDied;
 
+        /// <summary>An entity left your range or despawned (entity id).</summary>
+        public event Action<int>? EntityRemoved;
+
         public void NotifyEntityDied(int entityId) => EntityDied?.Invoke(entityId);
+        public void NotifyEntityRemoved(int entityId) => EntityRemoved?.Invoke(entityId);
 
         // Fired when the local character is known: (name, server name, which may be empty)
         public event Action<string, string>? UserIdentified;

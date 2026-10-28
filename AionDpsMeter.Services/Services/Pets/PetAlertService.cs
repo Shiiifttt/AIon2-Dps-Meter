@@ -10,12 +10,19 @@ namespace AionDpsMeter.Services.Services.Pets
         Nearby,
         /// <summary>Souls were picked up.</summary>
         Gained,
+        /// <summary>A pet reached max rank.</summary>
+        Completed,
+        /// <summary>The game sent the whole collection (login).</summary>
+        Synced,
     }
 
-    public sealed record PetAlertLine(int PetId, string Name, int Rank, int Souls, int Goal, int Gained = 0);
+    /// <param name="Guess">Matched by monster name only; not yet seen dropping from this monster.</param>
+    public sealed record PetAlertLine(int PetId, string Name, int Rank, int Souls, int Goal, int Gained = 0, bool Guess = false);
 
     /// <param name="CountsKnown">False until the collection is known (log in with tracking on), so counts read 0.</param>
-    public sealed record PetAlert(PetAlertKind Kind, string Title, IReadOnlyList<PetAlertLine> Pets, bool CountsKnown);
+    /// <param name="InRange">Nearby only: how many of this monster are in range right now.</param>
+    /// <param name="Note">Extra line under the title (the sync summary).</param>
+    public sealed record PetAlert(PetAlertKind Kind, string Title, IReadOnlyList<PetAlertLine> Pets, bool CountsKnown, int InRange = 0, string? Note = null);
 
     /// <summary>
     /// Raises short-lived alerts for the pet popup: monsters nearby that drop souls for pets you haven't
@@ -37,8 +44,15 @@ namespace AionDpsMeter.Services.Services.Pets
         private readonly PetSourceMap sources = new();
         private readonly Dictionary<int, DateTime> lastNearbyByMobCode = new();
         private readonly List<(DateTime At, int MobCode)> recentDeaths = [];
+        // Monsters that drop souls for unfinished pets and are in range now: entity id -> monster name.
+        private readonly Dictionary<int, (string Name, DateTime Since)> inRange = new();
+        // A missed "left range" packet (zone change, capture hiccup) must not keep a monster counted forever.
+        private static readonly TimeSpan InRangeExpiry = TimeSpan.FromMinutes(15);
 
         public event Action<PetAlert>? Alert;
+
+        /// <summary>How many of a monster (by name) are in range changed; 0 = all left range or died.</summary>
+        public event Action<string, int>? InRangeChanged;
 
         public PetAlertService(EntityTracker entityTracker, PetCollectionTracker collection, IAppSettingsService settings)
         {
@@ -47,7 +61,10 @@ namespace AionDpsMeter.Services.Services.Pets
             this.settings = settings;
             entityTracker.MobSpawned += OnMobSpawned;
             entityTracker.EntityDied += OnEntityDied;
+            entityTracker.EntityRemoved += OnEntityGone;
             collection.SoulsGained += OnSoulsGained;
+            collection.RankRaised += OnRankRaised;
+            collection.CollectionSynced += OnCollectionSynced;
         }
 
         private bool AlertsOn => settings.TrackPetCollection && settings.ShowPetAlerts;
@@ -55,28 +72,43 @@ namespace AionDpsMeter.Services.Services.Pets
         private void OnMobSpawned(int entityId, int mobCode)
         {
             if (!AlertsOn) return;
+            // Players' summons (a Spiritmaster's Water / Fire / Earth / Wind Spirit) share names with pets.
+            if (entityTracker.IsSummon(entityId)) return;
 
-            PetAlert? alert;
+            PetAlert? alert = null;
+            (string Name, int Count)? update = null;
             var now = DateTime.UtcNow;
             lock (gate)
             {
-                if (lastNearbyByMobCode.TryGetValue(mobCode, out var last) && now - last < NearbyRepeat) return;
-
                 var lines = sources.PetsFor(mobCode)
-                    .Select(pet => Line(pet))
+                    .Select(pet => Line(pet.PetId, !pet.Confirmed))
                     .Where(l => l is not null)
                     .Select(l => l!)
                     .ToList();
                 if (lines.Count == 0) return;
 
-                lastNearbyByMobCode[mobCode] = now;
-                alert = new PetAlert(PetAlertKind.Nearby, GameDataProvider.Instance.GetMobName(mobCode), lines, collection.HasCollection);
+                var name = GameDataProvider.Instance.GetMobName(mobCode);
+                foreach (var stale in inRange.Where(e => now - e.Value.Since > InRangeExpiry).Select(e => e.Key).ToList()) inRange.Remove(stale);
+                inRange[entityId] = (name, now);
+                int count = CountInRange(name);
+
+                if (lastNearbyByMobCode.TryGetValue(mobCode, out var last) && now - last < NearbyRepeat)
+                {
+                    update = (name, count); // the card may still be up: refresh its count
+                }
+                else
+                {
+                    lastNearbyByMobCode[mobCode] = now;
+                    alert = new PetAlert(PetAlertKind.Nearby, name, lines, collection.HasCollection, count);
+                }
             }
-            Alert?.Invoke(alert);
+            if (alert is not null) Alert?.Invoke(alert);
+            if (update is { } u) InRangeChanged?.Invoke(u.Name, u.Count);
         }
 
         private void OnEntityDied(int entityId)
         {
+            OnEntityGone(entityId);
             if (!settings.TrackPetCollection) return;
             if (entityTracker.GetTargetMob(entityId) is not { MobCode: > 0 } mob) return;
 
@@ -85,6 +117,41 @@ namespace AionDpsMeter.Services.Services.Pets
                 recentDeaths.Add((DateTime.UtcNow, mob.MobCode));
                 if (recentDeaths.Count > MaxRecentDeaths) recentDeaths.RemoveRange(0, recentDeaths.Count - MaxRecentDeaths);
             }
+        }
+
+        // Died, despawned or out of range.
+        private void OnEntityGone(int entityId)
+        {
+            (string Name, int Count) update;
+            lock (gate)
+            {
+                if (!inRange.Remove(entityId, out var entry)) return;
+                update = (entry.Name, CountInRange(entry.Name));
+            }
+            InRangeChanged?.Invoke(update.Name, update.Count);
+        }
+
+        private int CountInRange(string name) => inRange.Values.Count(e => e.Name == name);
+
+        private void OnCollectionSynced()
+        {
+            if (!AlertsOn) return;
+            var view = collection.GetView();
+            var farmable = view.Pets.Where(p => p.Farmable).ToList();
+            int maxed = view.Pets.Count(p => p.Rank >= PetCollectionTracker.MaxRank);
+            int rank2 = view.Pets.Count(p => p.Rank == 2), rank1 = view.Pets.Count(p => p.Rank == 1);
+            int locked = farmable.Count(p => p.Rank == 0);
+            var title = string.IsNullOrEmpty(view.Character) ? "Pet collection" : view.Character;
+            Alert?.Invoke(new PetAlert(PetAlertKind.Synced, title, [], true,
+                Note: $"{maxed} maxed · {rank2} at rank 2 · {rank1} at rank 1 · {locked} farmable still locked"));
+        }
+
+        private void OnRankRaised(int petId, int rank)
+        {
+            if (rank < PetCollectionTracker.MaxRank || !AlertsOn) return;
+            var name = GameDataProvider.Instance.Pets.GetName(petId);
+            Alert?.Invoke(new PetAlert(PetAlertKind.Completed, name,
+                [new PetAlertLine(petId, name, rank, 0, 0)], collection.HasCollection));
         }
 
         private void OnSoulsGained(IReadOnlyList<PetSoulGain> gains)
@@ -122,11 +189,11 @@ namespace AionDpsMeter.Services.Services.Pets
         }
 
         /// <summary>The pet's progress, or null when it's maxed.</summary>
-        private PetAlertLine? Line(int petId)
+        private PetAlertLine? Line(int petId, bool guess)
         {
             var (rank, souls) = collection.GetProgress(petId);
             if (PetCollectionTracker.SoulsForNextRank(rank) is not { } goal) return null;
-            return new PetAlertLine(petId, GameDataProvider.Instance.Pets.GetName(petId), rank, souls, goal);
+            return new PetAlertLine(petId, GameDataProvider.Instance.Pets.GetName(petId), rank, souls, goal, Guess: guess);
         }
     }
 }

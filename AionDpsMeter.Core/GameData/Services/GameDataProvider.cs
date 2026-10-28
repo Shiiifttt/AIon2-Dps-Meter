@@ -41,6 +41,7 @@ namespace AionDpsMeter.Core.GameData.Services
             Skills.LoadHealingSkills(Path.Combine(dataDir, "healing_skill_ids.json"));
             Mobs.Load(Path.Combine(dataDir, "mobs.json"));
             Pets.Load(Path.Combine(dataDir, "pets.json"));
+            Pets.LoadSources(Path.Combine(dataDir, "pet_sources.json"));
 
         }
 

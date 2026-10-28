@@ -4,31 +4,26 @@ using System.Text.Json;
 namespace AionDpsMeter.Services.Services.Pets
 {
     /// <summary>
-    /// Which pets' souls a monster can drop, by mob code. The game data has no such table, so it starts
-    /// from names and learns from play:
-    /// - Names: monsters carry regional names ("Ellun River Kailin", "Wetland Slink") and one monster
-    ///   drops souls for a whole family (Kailin and Young Kailin), so a monster matches every pet whose
-    ///   name, without "Young" / "Elite" / "Aberrant" style prefixes, ends the monster's name.
-    ///   Checked against a 3 hour log: right for 323 of 346 soul gains, and 185 of 199 farmable pets
-    ///   have at least one matching monster.
-    /// - Learned: each soul gain right after exactly one kind of monster died is saved here, which
-    ///   covers the pets whose monsters are named differently.
+    /// Which pets' souls a monster can drop, by mob code. The game doesn't send this, so it comes from:
+    /// - The table: GameData/Assets/pet_sources.json (pet id -> mob codes), built from metabot.gg's pet pages,
+    ///   which list every source monster with the same mob codes the spawn packet carries.
+    /// - Learned (confirmed): for monsters the table lacks, a soul gain right after exactly one kind of
+    ///   monster died is saved here. Checked: the first 6 learned in play all matched the table.
+    ///   Variants don't follow the names: "Yellow-Maned Zaif" gave Aberrant Zaif, "Baby Horn Ursus" gave
+    ///   Young Ursus, and both Kailin monsters gave Kailin and Young Kailin.
+    /// - Names (a guess, only without the table): a pet whose full name ends the monster's name ("Ellun River
+    ///   Kailin" -> Kailin). Prefixes aren't stripped any more: that listed Aberrant / Mutated / Elite
+    ///   variants for every plain monster of the family, which those monsters may not drop.
     /// Not thread-safe; <see cref="PetAlertService"/> serializes access.
     /// </summary>
     public sealed class PetSourceMap
     {
         private const string FilePath = "pet-sources.user.json";
 
-        private static readonly HashSet<string> NamePrefixes = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Young", "Baby", "Elite", "Aberrant", "Mutated", "Modified", "Unstable", "Enraged",
-            "Lesser", "Intermediate", "Superior", "Ultimate", "Male", "Female",
-        };
-
         private readonly string path;
         private readonly Dictionary<int, HashSet<int>> learned;
         private readonly Dictionary<int, int[]> byName = new();
-        private List<(int PetId, string Base)>? petBases;
+        private List<(int PetId, string Name)>? farmablePets;
 
         public PetSourceMap(string path = FilePath)
         {
@@ -36,15 +31,29 @@ namespace AionDpsMeter.Services.Services.Pets
             learned = Load(path);
         }
 
-        public IReadOnlyCollection<int> PetsFor(int mobCode)
+        /// <summary>
+        /// Pets this monster drops souls for. Confirmed = from the monster -> pet table (pet_sources.json)
+        /// or seen from your own kills; otherwise matched by name, only when the table is missing.
+        /// </summary>
+        public IReadOnlyList<(int PetId, bool Confirmed)> PetsFor(int mobCode)
         {
-            var named = ByName(mobCode);
-            if (!learned.TryGetValue(mobCode, out var seen)) return named;
-            return named.Concat(seen).Distinct().ToList();
+            var pets = GameDataProvider.Instance.Pets;
+            // The table is authoritative for the monsters it lists (each drops souls for exactly one pet).
+            var fromTable = pets.PetsDroppedBy(mobCode);
+            if (fromTable.Count > 0) return fromTable.Select(p => (p, true)).ToList();
+
+            var confirmed = (learned.TryGetValue(mobCode, out var s) ? s : []).ToList();
+            var guessed = pets.HasSources ? [] : ByName(mobCode).Where(p => !confirmed.Contains(p));
+            return confirmed.Select(p => (p, true)).Concat(guessed.Select(p => (p, false))).ToList();
         }
 
+        /// <summary>
+        /// Remembers a soul gain right after this kind of monster died. Only for monsters the table doesn't list
+        /// (e.g. new ones after a patch): a mixed pull can credit the wrong monster, and the table is checked.
+        /// </summary>
         public void Learn(int mobCode, int petId)
         {
+            if (GameDataProvider.Instance.Pets.PetsDroppedBy(mobCode).Count > 0) return;
             if (!learned.TryGetValue(mobCode, out var pets)) learned[mobCode] = pets = [];
             if (pets.Add(petId)) Save();
         }
@@ -58,22 +67,15 @@ namespace AionDpsMeter.Services.Services.Pets
             if (data.IsKnownMob(mobCode))
             {
                 var mob = data.GetMobName(mobCode);
-                petBases ??= data.Pets.All.Where(p => p.Farmable).Select(p => (p.Id, BaseName(p.Name))).ToList();
-                result = petBases
-                    .Where(p => mob.Equals(p.Base, StringComparison.OrdinalIgnoreCase)
-                             || mob.EndsWith(" " + p.Base, StringComparison.OrdinalIgnoreCase))
+                farmablePets ??= data.Pets.All.Where(p => p.Farmable).Select(p => (p.Id, p.Name)).ToList();
+                result = farmablePets
+                    .Where(p => mob.Equals(p.Name, StringComparison.OrdinalIgnoreCase)
+                             || mob.EndsWith(" " + p.Name, StringComparison.OrdinalIgnoreCase))
                     .Select(p => p.PetId)
                     .ToArray();
             }
             byName[mobCode] = result;
             return result;
-        }
-
-        private static string BaseName(string petName)
-        {
-            var words = petName.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
-            while (words.Count > 1 && NamePrefixes.Contains(words[0])) words.RemoveAt(0);
-            return string.Join(' ', words);
         }
 
         private void Save()

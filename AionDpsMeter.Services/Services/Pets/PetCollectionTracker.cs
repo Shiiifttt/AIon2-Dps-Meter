@@ -106,7 +106,11 @@ namespace AionDpsMeter.Services.Services.Pets
                 syncedAt = at;
                 Changed(at);
             }
+            CollectionSynced?.Invoke();
         }
+
+        /// <summary>The game sent the whole collection (at character login).</summary>
+        public event Action? CollectionSynced;
 
         public void OnSoulsGained(IReadOnlyList<(int PetId, int Amount)> gains, DateTime at)
         {
@@ -162,13 +166,22 @@ namespace AionDpsMeter.Services.Services.Pets
 
         public void OnRankChanged(int petId, int rank, DateTime at)
         {
+            int before;
             lock (gate)
             {
                 current ??= new PetCollectionData();
-                Progress(petId).Rank = rank;
+                var progress = Progress(petId);
+                before = progress.Rank;
+                progress.Rank = rank;
                 Changed(at);
             }
+            if (rank > before) RankRaised?.Invoke(petId, rank);
         }
+
+        /// <summary>A pet went up a rank (pet id, new rank; 3 = maxed).</summary>
+        public event Action<int, int>? RankRaised;
+
+        public const int MaxRank = 3;
 
         public PetCollectionView GetView()
         {

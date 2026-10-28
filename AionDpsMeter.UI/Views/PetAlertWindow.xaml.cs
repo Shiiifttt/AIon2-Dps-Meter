@@ -39,7 +39,13 @@ namespace AionDpsMeter.UI.Views
             _alerts = App.AppHost.Services.GetRequiredService<PetAlertService>();
             _windowManager = App.AppHost.Services.GetRequiredService<IWindowManagerService>();
             _alerts.Alert += OnAlert;
-            Closed += (_, _) => { _alerts.Alert -= OnAlert; _fadeTimer.Stop(); };
+            _alerts.InRangeChanged += OnInRangeChanged;
+            Closed += (_, _) =>
+            {
+                _alerts.Alert -= OnAlert;
+                _alerts.InRangeChanged -= OnInRangeChanged;
+                _fadeTimer.Stop();
+            };
         }
 
         /// <summary>While Settings is open the popup shows a placeholder and can be dragged.</summary>
@@ -54,7 +60,7 @@ namespace AionDpsMeter.UI.Views
             Dispatcher.BeginInvoke(() =>
             {
                 var now = DateTime.UtcNow;
-                var key = $"{alert.Kind}|{alert.Title}";
+                var key = PetAlertCardViewModel.KeyFor(alert.Kind, alert.Title);
                 var existing = _cards.FirstOrDefault(c => c.Key == key);
                 if (existing is not null)
                 {
@@ -67,6 +73,16 @@ namespace AionDpsMeter.UI.Views
                     while (_cards.Count > MaxCards) _cards.RemoveAt(_cards.Count - 1);
                 }
                 _fadeTimer.Start();
+            });
+        }
+
+        // A nearby card shows how many of its monster are still in range; it fades once none are.
+        private void OnInRangeChanged(string monster, int count)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                var key = PetAlertCardViewModel.KeyFor(PetAlertKind.Nearby, monster);
+                _cards.FirstOrDefault(c => c.Key == key)?.SetInRange(count, DateTime.UtcNow);
             });
         }
 

@@ -32,7 +32,7 @@
                 <DataTemplate>
                     <Border Opacity="{Binding Opacity}"
                             Background="#E6161B22"
-                            BorderBrush="#30363D" BorderThickness="1"
+                            BorderBrush="{Binding BorderColor, Converter={StaticResource StringToBrushConverter}}" BorderThickness="1"
                             CornerRadius="6" Padding="10,7" Margin="0,0,0,6">
                         <StackPanel>
                             <DockPanel LastChildFill="True">
@@ -46,11 +46,14 @@
                                            Foreground="{StaticResource PrimaryTextBrush}"
                                            TextTrimming="CharacterEllipsis"/>
                             </DockPanel>
+                            <TextBlock Text="{Binding Subtitle}" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,1,0,0" TextWrapping="Wrap"
+                                       Visibility="{Binding Subtitle, Converter={StaticResource StringToVisibilityConverter}}"/>
                             <ItemsControl ItemsSource="{Binding Lines}" Margin="0,4,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Margin="0,2,0,0">
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="Auto"/>
@@ -60,15 +63,19 @@
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="3"/>
                                             </Grid.RowDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="11"
-                                                       Foreground="{StaticResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding GainedText}" FontSize="11" FontWeight="Bold"
+                                            <Image Grid.Column="0" Grid.RowSpan="2" Width="24" Height="24" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                   Source="{Binding IconPath, Converter={StaticResource SafeImageSourceConverter}}" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <TextBlock Grid.Column="1" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding GuessTooltip}">
+                                                <Run Text="{Binding Name, Mode=OneWay}" Foreground="{StaticResource PrimaryTextBrush}"/><Run Text="{Binding GuessText, Mode=OneWay}" FontSize="9" Foreground="{StaticResource SecondaryTextBrush}"/>
+                                            </TextBlock>
+                                            <TextBlock Grid.Column="2" Text="{Binding GainedText}" FontSize="11" FontWeight="Bold"
                                                        Foreground="#7EE787" Margin="6,0,0,0"/>
-                                            <TextBlock Grid.Column="2" Text="{Binding ProgressText}" FontSize="11" FontWeight="Bold" FontFamily="Consolas"
+                                            <TextBlock Grid.Column="3" Text="{Binding ProgressText}" FontSize="11" FontWeight="Bold" FontFamily="Consolas"
                                                        Foreground="{StaticResource DamageBarBrush}" Margin="6,0,0,0"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding RankText}" FontSize="9"
+                                            <TextBlock Grid.Column="4" Text="{Binding RankText}" FontSize="9"
                                                        Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="6,0,0,0"/>
-                                            <Grid Grid.Row="1" Grid.ColumnSpan="4" Margin="0,1,0,0">
+                                            <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Margin="0,1,0,0">
                                                 <Border Background="#21262D" CornerRadius="1"/>
                                                 <Border Background="{StaticResource DamageBarBrush}" CornerRadius="1" HorizontalAlignment="Left">
                                                     <Border.Width>

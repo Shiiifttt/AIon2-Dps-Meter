@@ -8,6 +8,7 @@ public static class PacketOpcodes
     public const ushort CompressedStream = 0xFFFF;    // FF FF
     public const ushort RemainHp = 0x8D00;            // 00 8D
     public const ushort MobSummon = 0x3641;           // 41 36
+    public const ushort EntityRemoved = 0x3642;       // 42 36
     public const ushort BuffEffectA = 0x382A;         // 2A 38
     public const ushort BuffEffectB = 0x382B;         // 2B 38
     public const ushort PlayerInfo = 0x3633;          // 33 36
