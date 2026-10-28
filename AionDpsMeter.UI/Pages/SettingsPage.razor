@@ -145,6 +145,15 @@
                 </ValueSlot>
             </SettingRow>
 
+            @if (settings.TrackPetCollection)
+            {
+                <SettingRow Title="Pet Popup" Description="A small popup that fades on its own when a monster that drops souls for a pet you haven't maxed comes near, and when you pick up souls. Drag it where you want it while Settings is open">
+                    <ValueSlot>
+                        <ToggleSwitch Checked="settings.ShowPetAlerts" CheckedChanged="v => { settings.ShowPetAlerts = v; }" />
+                    </ValueSlot>
+                </SettingRow>
+            }
+
             <SettingRow Title="Hide Player Names" Description="Replace names with obfuscated names — useful before sharing screenshots" IsLast="true">
                 <ValueSlot>
                     <ToggleSwitch Checked="settings.IsNicknameHidden" CheckedChanged="v => { settings.IsNicknameHidden = v; }" />

@@ -17,7 +17,7 @@ namespace AionDpsMeter.UI.ViewModels
                 $"Active {DamageFormatter.FormatDuration(TimeSpan.FromSeconds(stats.ActiveSeconds))} of " +
                 $"{DamageFormatter.FormatDuration(TimeSpan.FromSeconds(stats.ActiveSeconds + stats.IdleSeconds))} " +
                 $"(idle {FormatIdle(stats.IdleSeconds)})",
-                "Time when nobody was hitting the boss is not counted.",
+                "Downtime isn't counted: stretches when nobody, or only one player of a group, was hitting the boss.",
             };
             if (bestForClass is { } best)
             {

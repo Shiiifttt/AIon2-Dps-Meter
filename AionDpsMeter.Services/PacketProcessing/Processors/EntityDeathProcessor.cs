@@ -19,6 +19,7 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
             var entityId = (int)reader.ReadVarInt();
 
             if (entityTracker.IsIdentifiedPlayer(entityId)) sessionManager.RegisterPlayerDeath(entityId);
+            entityTracker.NotifyEntityDied(entityId);
         }
     }
 }

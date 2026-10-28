@@ -168,6 +168,28 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
                     x => (IReadOnlyList<PlayerStats>)(DeserializeOrDefault<List<PlayerStats>>(x.PlayerStatsJson) ?? []));
         }
 
+        public IReadOnlyList<HistorySessionListItem> GetSessionListForTarget(string targetName)
+        {
+            using var db = _dbContextFactory.CreateDbContext();
+
+            return db.Sessions
+                .AsNoTracking()
+                .Where(x => x.TargetName == targetName)
+                .Select(x => new HistorySessionListItem
+                {
+                    SessionId = x.SessionId,
+                    TargetId = x.TargetId,
+                    TargetName = x.TargetName,
+                    TargetHpTotal = x.TargetHpTotal,
+                    SessionStart = x.SessionStart,
+                    SessionEnd = x.SessionEnd,
+                    State = x.State,
+                    TotalDamage = x.TotalDamage,
+                    PlayerCount = x.PlayerCount,
+                })
+                .ToList();
+        }
+
         public int DeleteShortSessions(IReadOnlySet<string> targetNames, TimeSpan maxDuration)
         {
             DrainPendingSaves();

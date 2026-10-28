@@ -340,7 +340,7 @@
                         <ColumnDefinition Width="16"/>
                         <ColumnDefinition Width="2*"/>
                         <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="60"/>
+                        <ColumnDefinition Width="104"/>
                         <ColumnDefinition Width="80"/>
                         <ColumnDefinition Width="64"/>
                         <ColumnDefinition Width="56"/>
@@ -348,7 +348,7 @@
                     <TextBlock Grid.Column="0" Text=""      FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="1" Text="Mob"   FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="4,0,0,0"/>
                     <TextBlock Grid.Column="2" Text="Date"  FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="3" Text="Time"  FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="3" Text="Time"  FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" ToolTip="Fight length, and for kills how it compares with the fastest kill of that boss"/>
                     <TextBlock Grid.Column="4" Text="Damage" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="5" Text="vs PB" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" Margin="0,0,10,0" VerticalAlignment="Center" ToolTip="Your DPS compared with your best on that boss"/>
                     <TextBlock Grid.Column="6" Text="Players" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
@@ -392,7 +392,9 @@
                         <Border Background="Transparent"
                                 Padding="10,6"
                                 Cursor="Hand"
-                                MouseLeftButtonDown="SessionItem_Click">
+                                MouseLeftButtonDown="SessionItem_Click"
+                                MouseEnter="SessionItem_MouseEnter"
+                                MouseLeave="SessionItem_MouseLeave">
                             <Border.Tag>
                                 <Binding/>
                             </Border.Tag>
@@ -410,7 +412,7 @@
                                     <ColumnDefinition Width="16"/>
                                     <ColumnDefinition Width="2*"/>
                                     <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="104"/>
                                     <ColumnDefinition Width="80"/>
                                     <ColumnDefinition Width="64"/>
                                     <ColumnDefinition Width="56"/>
@@ -439,12 +441,19 @@
                                            Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"/>
 
-                                <!-- Duration -->
-                                <TextBlock Grid.Column="3"
-                                           Text="{Binding Duration}"
-                                           FontSize="10" FontFamily="Consolas"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <!-- Duration, and for kills the difference to the fastest kill -->
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Duration}"
+                                               FontSize="10" FontFamily="Consolas"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding KillTimeDisplay}"
+                                               ToolTip="{Binding KillTimeTooltip}"
+                                               FontSize="10" FontWeight="Bold" FontFamily="Consolas"
+                                               Foreground="{Binding KillTimeColor, Converter={StaticResource StringToBrushConverter}}"
+                                               Margin="6,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
 
                                 <!-- Total damage -->
                                 <TextBlock Grid.Column="4"
@@ -458,6 +467,11 @@
                                 <TextBlock Grid.Column="5"
                                            Text="{Binding VsBestDisplay}"
                                            ToolTip="{Binding VsBestTooltip}"
+                                           Background="Transparent"
+                                           Padding="6,2,0,2"
+                                           MouseEnter="VsBest_MouseEnter"
+                                           MouseLeave="VsBest_MouseLeave"
+                                           MouseLeftButtonDown="VsBest_Click"
                                            FontSize="10" FontWeight="Bold"
                                            Foreground="{Binding VsBestColor, Converter={StaticResource StringToBrushConverter}}"
                                            HorizontalAlignment="Right"

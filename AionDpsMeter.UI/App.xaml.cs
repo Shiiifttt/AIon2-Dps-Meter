@@ -57,6 +57,7 @@ namespace AionDpsMeter.UI
                     services.AddSingleton<ServerClock>();
                     services.AddSingleton<BossPatternTracker>();
                     services.AddSingleton<PetCollectionTracker>();
+                    services.AddSingleton<PetAlertService>();
                     services.AddKeyedSingleton<ITimedEventTracker, BuffTimedEventTracker>("Buffs");
                     services.AddKeyedSingleton<ITimedEventTracker, SkillCdTimedEventTracker>("SkillCd");
                     services.AddSingleton<CombatSessionManager>();
@@ -81,6 +82,8 @@ namespace AionDpsMeter.UI
             await AppHost.StartAsync();
 
             _ = AppHost.Services.GetRequiredService<ICombatHistoryStore>();
+            // Learns which monsters drop which pet souls, so it has to listen from the start.
+            _ = AppHost.Services.GetRequiredService<PetAlertService>();
 
             var mainWindow = AppHost.Services.GetRequiredService<MainWindow>();
             var windowManager = AppHost.Services.GetRequiredService<IWindowManagerService>();

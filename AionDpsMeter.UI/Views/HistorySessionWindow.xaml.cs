@@ -1,4 +1,5 @@
 using AionDpsMeter.Services.Services.Settings;
+using AionDpsMeter.UI.Services.Windowing;
 using AionDpsMeter.UI.ViewModels;
 using AionDpsMeter.UI.ViewModels.History;
 using System.Windows;
@@ -9,6 +10,7 @@ namespace AionDpsMeter.UI
     public partial class HistorySessionWindow : Window
     {
         private readonly IAppSettingsService _settingsService;
+        private HoverPreview? _preview;
 
         public HistorySessionWindow(IAppSettingsService settingsService)
         {
@@ -30,14 +32,33 @@ namespace AionDpsMeter.UI
                 el.Tag is HistoryPlayerViewModel player &&
                 DataContext is HistorySessionViewModel session)
             {
-                var vm = PlayerDetailsViewModel.FromSnapshot(player, _settingsService, session.TargetName);
+                _preview?.Hide();
                 var detailsWindow = new PlayerDetailsWindow
                 {
-                    DataContext = vm,
+                    DataContext = PlayerDetailsViewModel.FromSnapshot(player, _settingsService, session.TargetName),
                     Owner = this
                 };
                 detailsWindow.Show();
             }
         }
+
+        // Hovering a player previews their breakdown; clicking still opens it as its own window.
+        private void PlayerItem_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (sender is not FrameworkElement { Tag: HistoryPlayerViewModel player } ||
+                DataContext is not HistorySessionViewModel session) return;
+
+            _preview ??= new HoverPreview(this);
+            _preview.Request(player, () => Task.FromResult<IReadOnlyList<Window>?>(
+            [
+                new PlayerDetailsWindow
+                {
+                    DataContext = PlayerDetailsViewModel.FromSnapshot(player, _settingsService, session.TargetName),
+                    Owner = this
+                },
+            ]));
+        }
+
+        private void PlayerItem_MouseLeave(object sender, MouseEventArgs e) => _preview?.Hide();
     }
 }

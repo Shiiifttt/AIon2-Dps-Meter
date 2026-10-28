@@ -137,9 +137,10 @@ namespace AionDpsMeter.Services.Services.Session
 
                 if (live is not null)
                     return HistorySessionSnapshot.From(live);
-
-                return historyStore.GetSession(sessionId);
             }
+
+            // Loading and unpacking a saved fight takes a while; don't hold up packet processing for it.
+            return historyStore.GetSession(sessionId);
         }
 
         public IReadOnlyCollection<PlayerStats> PlayerStats
@@ -204,7 +205,7 @@ namespace AionDpsMeter.Services.Services.Session
                 var sessionEnd = session.LastHitTime;
 
                 var buffs = session.GetBuffEvents(playerId, sessionStart, sessionEnd);
-                return BuffStatisticsCalculator.ComputeBuffStats(buffs, sessionStart, sessionEnd);
+                return BuffStatisticsCalculator.ComputeBuffStats(buffs, sessionStart, sessionEnd, session.GetActiveIntervals(playerId));
             }
         }
 
@@ -471,6 +472,15 @@ namespace AionDpsMeter.Services.Services.Session
             }
         }
 
+        /// <summary>This saved kill's time against the fastest saved kill of the same boss, or null if it wasn't a kill.</summary>
+        public KillTimeComparison? GetKillTimeVsBest(Guid sessionId, string targetName)
+        {
+            lock (lockObject)
+            {
+                return GetBossRecords(targetName).CompareKillTime(sessionId);
+            }
+        }
+
         /// <summary>Deletes saved fights against training dummies shorter than a minute; returns how many.</summary>
         public int DeleteShortDummySessions()
         {
@@ -496,6 +506,8 @@ namespace AionDpsMeter.Services.Services.Session
             {
                 foreach (var (sessionId, stats) in historyStore.GetPlayerStatsForTarget(targetName))
                     records.Add(sessionId, stats);
+                foreach (var fight in historyStore.GetSessionListForTarget(targetName))
+                    records.AddFight(fight);
             }
             catch (Exception ex)
             {
@@ -510,7 +522,9 @@ namespace AionDpsMeter.Services.Services.Session
             try
             {
                 // Load the saved records before this fight is queued for saving, then fold it in.
-                GetBossRecords(session.TargetInfo.Name).Add(session.SessionId, session.GetPlayerStats());
+                var records = GetBossRecords(session.TargetInfo.Name);
+                records.Add(session.SessionId, session.GetPlayerStats());
+                records.AddFight(CreateListItem(session));
             }
             catch (Exception ex)
             {

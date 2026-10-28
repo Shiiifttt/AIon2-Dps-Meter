@@ -13,6 +13,7 @@
         public int FrontAttacks { get; set; }
         public int PerfectHits { get; set; }
         public int DoubleDamageHits { get; set; }
+        public int MultiHits { get; set; }
         public int ParryHits { get; set; }
         public long MaxHit { get; set; }
         /// <summary>Raw minimum hit. Initialised to <see cref="long.MaxValue"/> as a sentinel meaning "no hit yet".</summary>
@@ -38,6 +39,7 @@
         public double FrontAttackRate     => HitCount > 0 ? (double)FrontAttacks / HitCount * 100 : 0;
         public double PerfectRate         => HitCount > 0 ? (double)PerfectHits     / HitCount * 100 : 0;
         public double DoubleDamageRate    => HitCount > 0 ? (double)DoubleDamageHits / HitCount * 100 : 0;
+        public double MultiHitRate        => HitCount > 0 ? (double)MultiHits       / HitCount * 100 : 0;
         public double ParryRate           => HitCount > 0 ? (double)ParryHits       / HitCount * 100 : 0;
 
         public SkillStats Clone()
@@ -55,6 +57,7 @@
                 FrontAttacks = FrontAttacks,
                 PerfectHits = PerfectHits,
                 DoubleDamageHits = DoubleDamageHits,
+                MultiHits = MultiHits,
                 ParryHits = ParryHits,
                 MaxHit = MaxHit,
                 MinHit = MinHit,

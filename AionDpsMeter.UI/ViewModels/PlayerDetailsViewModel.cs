@@ -34,6 +34,7 @@ namespace AionDpsMeter.UI.ViewModels
         [ObservableProperty] private bool _filterFrontAttacks;
         [ObservableProperty] private bool _filterPerfectHits;
         [ObservableProperty] private bool _filterDoubleDamageHits;
+        [ObservableProperty] private bool _filterMultiHits;
         [ObservableProperty] private ObservableCollection<BuffStatsViewModel> _buffs = new();
         [ObservableProperty] private int _selectedTabIndex;
         [ObservableProperty] private string _playerNameDisplay;
@@ -52,6 +53,9 @@ namespace AionDpsMeter.UI.ViewModels
         [ObservableProperty] private string _frontAttackRateDisplay = "0%";
         [ObservableProperty] private string _perfectRateDisplay = "0%";
         [ObservableProperty] private string _doubleDamageRateDisplay = "0%";
+        [ObservableProperty] private string _multiHitRateDisplay = "0%";
+        // Set when two breakdowns are shown side by side, e.g. "This fight" / "Personal best".
+        [ObservableProperty] private string _fightLabel = string.Empty;
         [ObservableProperty] private string _parryRateDisplay = "0%";
         [ObservableProperty] private string _damageContributionDisplay = "0%";
         [ObservableProperty] private string _totalBreakDisplay = "0";
@@ -113,6 +117,7 @@ namespace AionDpsMeter.UI.ViewModels
         partial void OnFilterFrontAttacksChanged(bool value) => ApplyCombatLogFilters();
         partial void OnFilterPerfectHitsChanged(bool value) => ApplyCombatLogFilters();
         partial void OnFilterDoubleDamageHitsChanged(bool value) => ApplyCombatLogFilters();
+        partial void OnFilterMultiHitsChanged(bool value) => ApplyCombatLogFilters();
 
         /// <summary>Nickname formatted as <c>Name[Server]</c> when server is known, otherwise just <c>Name</c>.</summary>
         public string PlayerNameWithServer
@@ -160,6 +165,7 @@ namespace AionDpsMeter.UI.ViewModels
             vm.FrontAttackRateDisplay    = player.FrontAttackRateDisplay;
             vm.PerfectRateDisplay        = player.PerfectRateDisplay;
             vm.DoubleDamageRateDisplay   = player.DoubleDamageRateDisplay;
+            vm.MultiHitRateDisplay       = player.MultiHitRateDisplay;
             vm.ParryRateDisplay          = player.ParryRateDisplay;
             vm.DamageContributionDisplay = player.DamagePercentDisplay;
             vm.TotalBreakDisplay         = player.TotalBreakDisplay;
@@ -302,6 +308,7 @@ namespace AionDpsMeter.UI.ViewModels
                 FrontAttackRateDisplay    = DamageFormatter.FormatRate(playerStats.FrontAttackRate);
                 PerfectRateDisplay        = DamageFormatter.FormatRate(playerStats.PerfectRate);
                 DoubleDamageRateDisplay   = DamageFormatter.FormatRate(playerStats.DoubleDamageRate);
+                MultiHitRateDisplay       = DamageFormatter.FormatRate(playerStats.MultiHitRate);
                 ParryRateDisplay          = DamageFormatter.FormatRate(playerStats.ParryRate);
                 DamageContributionDisplay = DamageFormatter.FormatRate(playerStats.DamagePercentage);
                 TotalBreakDisplay         = playerStats.TotalBreak.ToString("0.#");
@@ -493,6 +500,9 @@ namespace AionDpsMeter.UI.ViewModels
                 return false;
 
             if (FilterPerfectHits && !entry.IsPerfect)
+                return false;
+
+            if (FilterMultiHits && !entry.IsMultiHit)
                 return false;
 
             if (FilterDoubleDamageHits && !entry.IsDoubleDamage)

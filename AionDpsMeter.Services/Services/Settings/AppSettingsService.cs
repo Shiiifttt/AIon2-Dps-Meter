@@ -315,6 +315,22 @@ namespace AionDpsMeter.Services.Services.Settings
             }
         }
 
+        public bool ShowPetAlerts
+        {
+            get { lock (_lock) return _data.ShowPetAlerts; }
+            set
+            {
+                bool changed;
+                lock (_lock)
+                {
+                    changed = _data.ShowPetAlerts != value;
+                    _data.ShowPetAlerts = value;
+                    if (changed) Save();
+                }
+                if (changed) SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         public bool IsPacketLoggingEnabled
         {
             get { lock (_lock) return _data.IsPacketLoggingEnabled; }
@@ -656,6 +672,9 @@ namespace AionDpsMeter.Services.Services.Settings
 
             [JsonPropertyName("trackPetCollection")]
             public bool TrackPetCollection { get; set; }
+
+            [JsonPropertyName("showPetAlerts")]
+            public bool ShowPetAlerts { get; set; } = true;
 
             [JsonPropertyName("playerRowScale")]
             public double PlayerRowScale { get; set; } = 1.0;

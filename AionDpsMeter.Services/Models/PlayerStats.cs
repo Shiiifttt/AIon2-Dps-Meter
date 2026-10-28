@@ -20,6 +20,7 @@
         public int FrontAttacks { get; set; }
         public int PerfectHits { get; set; }
         public int DoubleDamageHits { get; set; }
+        public int MultiHits { get; set; }
         public int ParryHits { get; set; }
         public double DamagePerSecond { get; set; }
         public double DamagePercentage { get; set; }
@@ -38,6 +39,7 @@
         public double FrontAttackRate => HitCount > 0 ? (double)FrontAttacks / HitCount * 100 : 0;
         public double PerfectRate => HitCount > 0 ? (double)PerfectHits / HitCount * 100 : 0;
         public double DoubleDamageRate => HitCount > 0 ? (double)DoubleDamageHits / HitCount * 100 : 0;
+        public double MultiHitRate => HitCount > 0 ? (double)MultiHits / HitCount * 100 : 0;
         public double ParryRate => HitCount > 0 ? (double)ParryHits / HitCount * 100 : 0;
         public TimeSpan CombatDuration => LastHit > FirstHit ? LastHit - FirstHit : TimeSpan.Zero;
     }

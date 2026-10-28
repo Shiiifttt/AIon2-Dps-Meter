@@ -48,7 +48,7 @@ namespace AionDpsMeter.Services.Services.Session
                 {
                     var buffs = session.GetBuffEvents(p.PlayerId, sessionStart, sessionEnd);
                     return (IReadOnlyCollection<BuffStats>)BuffStatisticsCalculator
-                        .ComputeBuffStats(buffs, sessionStart, sessionEnd)
+                        .ComputeBuffStats(buffs, sessionStart, sessionEnd, session.GetActiveIntervals(p.PlayerId))
                         .ToList();
                 });
 

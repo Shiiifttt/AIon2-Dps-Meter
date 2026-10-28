@@ -1,0 +1,95 @@
+<Window x:Class="AionDpsMeter.UI.Views.PetAlertWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Pet popup"
+        Width="300" Height="340"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <StackPanel VerticalAlignment="Top">
+        <!-- Shown while Settings is open, so there's something to drag into place -->
+        <Border x:Name="EditHint"
+                Visibility="Collapsed"
+                Background="#E6161B22"
+                BorderBrush="#FFD54F" BorderThickness="1"
+                CornerRadius="6" Padding="10,8" Margin="0,0,0,6"
+                Cursor="SizeAll">
+            <StackPanel>
+                <TextBlock Text="Pet popup" FontSize="12" FontWeight="Bold" Foreground="#FFD54F"/>
+                <TextBlock Text="Drag to move. Shows nearby monsters that drop souls for pets you haven't maxed, and soul pickups."
+                           FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <ItemsControl x:Name="Cards">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Opacity="{Binding Opacity}"
+                            Background="#E6161B22"
+                            BorderBrush="#30363D" BorderThickness="1"
+                            CornerRadius="6" Padding="10,7" Margin="0,0,0,6">
+                        <StackPanel>
+                            <DockPanel LastChildFill="True">
+                                <TextBlock DockPanel.Dock="Left"
+                                           Text="{Binding KindLabel}"
+                                           FontSize="9" FontWeight="Bold"
+                                           Foreground="{Binding KindColor, Converter={StaticResource StringToBrushConverter}}"
+                                           VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="{Binding Title}"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding Lines}" Margin="0,4,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,2,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="3"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="11"
+                                                       Foreground="{StaticResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding GainedText}" FontSize="11" FontWeight="Bold"
+                                                       Foreground="#7EE787" Margin="6,0,0,0"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding ProgressText}" FontSize="11" FontWeight="Bold" FontFamily="Consolas"
+                                                       Foreground="{StaticResource DamageBarBrush}" Margin="6,0,0,0"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding RankText}" FontSize="9"
+                                                       Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                            <Grid Grid.Row="1" Grid.ColumnSpan="4" Margin="0,1,0,0">
+                                                <Border Background="#21262D" CornerRadius="1"/>
+                                                <Border Background="{StaticResource DamageBarBrush}" CornerRadius="1" HorizontalAlignment="Left">
+                                                    <Border.Width>
+                                                        <MultiBinding Converter="{StaticResource PercentageToWidthConverter}">
+                                                            <Binding Path="FillPercent"/>
+                                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Grid}"/>
+                                                        </MultiBinding>
+                                                    </Border.Width>
+                                                </Border>
+                                            </Grid>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="Counts unknown until you log in with pet tracking on"
+                                       FontSize="9" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,4,0,0"
+                                       Visibility="{Binding CountsUnknown, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</Window>

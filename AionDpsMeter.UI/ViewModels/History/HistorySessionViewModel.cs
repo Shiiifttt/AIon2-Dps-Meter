@@ -1,3 +1,4 @@
+using AionDpsMeter.Services.Models;
 using AionDpsMeter.Services.Services.Session;
 using AionDpsMeter.Services.Services.Settings;
 
@@ -30,12 +31,13 @@ namespace AionDpsMeter.UI.ViewModels.History
         {
             _snapshot = snapshot;
             TotalBreak = snapshot.PlayerStats.Sum(p => p.TotalBreak);
+            var buffStats = RecomputeOldFightUptime(snapshot);
             Players = snapshot.PlayerStats.Where(r => r.IsIdentified || r.DamagePercentage > 1)
                 .OrderByDescending(p => p.TotalDamage)
                 .Select(p => new HistoryPlayerViewModel(
                     p,
                     snapshot.SkillStatsByPlayer.TryGetValue(p.PlayerId, out var skills) ? skills : [],
-                    snapshot.BuffStatsByPlayer.TryGetValue(p.PlayerId, out var buffs) ? buffs : [],
+                    buffStats.TryGetValue(p.PlayerId, out var buffs) ? buffs : [],
                     snapshot.HitsByPlayer.TryGetValue(p.PlayerId, out var hits) ? hits : [],
                     snapshot.BuffEventsByPlayer.TryGetValue(p.PlayerId, out var buffEvts) ? buffEvts : [],
                     settingsService,
@@ -43,6 +45,41 @@ namespace AionDpsMeter.UI.ViewModels.History
                     TotalBreak,
                     snapshot.Duration))
                 .ToList();
+        }
+
+        public Guid SessionId => _snapshot.SessionId;
+
+        /// <summary>You in this fight, if you were in it.</summary>
+        public HistoryPlayerViewModel? UserPlayer => Players.FirstOrDefault(p => p.IsUser);
+
+        // Fights saved before buff uptime was measured against active time (and before downtime needed
+        // more than one player hitting) get both recomputed from their saved hits.
+        private static IReadOnlyDictionary<long, IReadOnlyCollection<BuffStats>> RecomputeOldFightUptime(HistorySessionSnapshot snapshot)
+        {
+            bool upToDate = snapshot.BuffStatsByPlayer.Values.All(list => list.All(b => b.ActiveUptimePercentage is not null));
+            if (upToDate || snapshot.BuffEventsByPlayer.Count == 0) return snapshot.BuffStatsByPlayer;
+
+            var uptime = UptimeCalculator.Compute(
+                snapshot.HitsByPlayer.ToDictionary(p => p.Key, p => UptimeCalculator.ActiveHitTimes(p.Value)),
+                snapshot.SessionEnd);
+
+            foreach (var stats in snapshot.PlayerStats)
+            {
+                if (stats.UptimePercentage is null || uptime.FightSeconds <= 0 ||
+                    !uptime.ActiveByPlayer.TryGetValue(stats.PlayerId, out var playerActive)) continue;
+                var active = UptimeCalculator.Total(playerActive).TotalSeconds;
+                stats.ActiveSeconds = active;
+                stats.IdleSeconds = Math.Max(0, uptime.FightSeconds - active);
+                stats.UptimePercentage = Math.Min(100, active / uptime.FightSeconds * 100);
+            }
+
+            var result = new Dictionary<long, IReadOnlyCollection<BuffStats>>(snapshot.BuffStatsByPlayer);
+            foreach (var (playerId, events) in snapshot.BuffEventsByPlayer)
+            {
+                if (events.Count == 0 || !uptime.ActiveByPlayer.TryGetValue(playerId, out var active)) continue;
+                result[playerId] = BuffStatisticsCalculator.ComputeBuffStats(events, snapshot.SessionStart, snapshot.SessionEnd, active);
+            }
+            return result;
         }
     }
 }

@@ -100,6 +100,7 @@ namespace AionDpsMeter.UI.ViewModels
             _stats.BackAttacks       = updatedStats.BackAttacks;
             _stats.PerfectHits       = updatedStats.PerfectHits;
             _stats.DoubleDamageHits  = updatedStats.DoubleDamageHits;
+            _stats.MultiHits         = updatedStats.MultiHits;
             _stats.ParryHits         = updatedStats.ParryHits;
             _stats.DamagePerSecond   = updatedStats.DamagePerSecond;
             _stats.DamagePercentage  = updatedStats.DamagePercentage;

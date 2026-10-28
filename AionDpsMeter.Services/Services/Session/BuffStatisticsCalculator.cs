@@ -6,13 +6,17 @@ namespace AionDpsMeter.Services.Services.Session
 
     public static class BuffStatisticsCalculator
     {
+        /// <param name="activeIntervals">When the player was attacking; buff uptime % is measured against this time.</param>
         public static IReadOnlyCollection<BuffStats> ComputeBuffStats(
             IReadOnlyList<BuffEvent> buffEvents,
             DateTime windowStart,
-            DateTime windowEnd)
+            DateTime windowEnd,
+            IReadOnlyList<TimeInterval>? activeIntervals = null)
         {
             if (buffEvents.Count == 0)
                 return [];
+
+            var activeSeconds = activeIntervals is null ? 0 : UptimeCalculator.Total(activeIntervals).TotalSeconds;
 
             return buffEvents
                 .GroupBy(e => e.BuffId)
@@ -30,7 +34,12 @@ namespace AionDpsMeter.Services.Services.Session
                         .OrderBy(i => i.Start)
                         .ToList();
 
-                    double mergedSeconds = MergeIntervals(intervals);
+                    var merged = MergeIntervals(intervals);
+                    double mergedSeconds = UptimeCalculator.Total(merged).TotalSeconds;
+
+                    double? activeUptime = activeSeconds > 0
+                        ? Math.Min(100, UptimeCalculator.Total(UptimeCalculator.Intersect(merged, activeIntervals!)).TotalSeconds / activeSeconds * 100)
+                        : null;
 
                     var first = g.First();
                     return new BuffStats
@@ -41,6 +50,7 @@ namespace AionDpsMeter.Services.Services.Session
                         Description = first.Description,
                         ApplicationCount = g.Count(),
                         EffectiveDurationSeconds = mergedSeconds,
+                        ActiveUptimePercentage = activeUptime,
                     };
                 })
                 .OrderByDescending(b => b.ApplicationCount)
@@ -48,11 +58,11 @@ namespace AionDpsMeter.Services.Services.Session
         }
 
 
-        private static double MergeIntervals(List<(DateTime Start, DateTime End)> sorted)
+        private static List<TimeInterval> MergeIntervals(List<(DateTime Start, DateTime End)> sorted)
         {
-            if (sorted.Count == 0) return 0;
+            var result = new List<TimeInterval>();
+            if (sorted.Count == 0) return result;
 
-            double totalSeconds = 0;
             var currentStart = sorted[0].Start;
             var currentEnd = sorted[0].End;
 
@@ -61,20 +71,20 @@ namespace AionDpsMeter.Services.Services.Session
                 var (start, end) = sorted[i];
                 if (start <= currentEnd)
                 {
-                   
+
                     if (end > currentEnd)
                         currentEnd = end;
                 }
                 else
                 {
-                    totalSeconds += (currentEnd - currentStart).TotalSeconds;
+                    result.Add(new TimeInterval(currentStart, currentEnd));
                     currentStart = start;
                     currentEnd = end;
                 }
             }
 
-            totalSeconds += (currentEnd - currentStart).TotalSeconds;
-            return totalSeconds;
+            result.Add(new TimeInterval(currentStart, currentEnd));
+            return result;
         }
     }
 }

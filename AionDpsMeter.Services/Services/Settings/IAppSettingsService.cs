@@ -17,6 +17,8 @@ namespace AionDpsMeter.Services.Services.Settings
         bool ShowBreakBars { get; set; }
         bool ShowBossPatterns { get; set; }
         bool TrackPetCollection { get; set; }
+        /// <summary>Popup for nearby monsters that drop souls for unfinished pets, and for soul pickups. Needs TrackPetCollection.</summary>
+        bool ShowPetAlerts { get; set; }
         int HistoryRetantionPeriod { get; set; }
         double WindowOpacity { get; set; }
         string? BackgroundImagePath { get; set; }

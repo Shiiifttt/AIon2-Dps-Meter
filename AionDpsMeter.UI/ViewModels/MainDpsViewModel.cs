@@ -144,7 +144,7 @@ namespace AionDpsMeter.UI.ViewModels
             var userUptime = me?.UptimePercentage;
             UserUptimeDisplay = userUptime is { } u ? $"{u:0}%" : string.Empty;
             UserUptimeTooltip = userUptime is null ? string.Empty
-                : "Your uptime: share of the fight you were attacking (time nobody was hitting the boss isn't counted)";
+                : "Your uptime: share of the fight you were attacking (downtime, when the party couldn't hit the boss, isn't counted)";
 
             long topDamage = currentStats.Count > 0 ? currentStats.Max(x => x.TotalDamage) : 0;
             var currentIds = new HashSet<long>();

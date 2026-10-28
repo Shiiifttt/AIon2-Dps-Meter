@@ -45,6 +45,7 @@
             <SolidColorBrush x:Key="BackAttackColorBrush"     Color="#79C0FF"/>
             <SolidColorBrush x:Key="PerfectColorBrush"        Color="#D2A8FF"/>
             <SolidColorBrush x:Key="DoubleDamageColorBrush"   Color="#FFA657"/>
+            <SolidColorBrush x:Key="MultiHitColorBrush"       Color="#F2CC60"/>
             <SolidColorBrush x:Key="ParryColorBrush"          Color="#FF6B6B"/>
             <SolidColorBrush x:Key="BuffColorBrush"           Color="#E0B0FF"/>
 

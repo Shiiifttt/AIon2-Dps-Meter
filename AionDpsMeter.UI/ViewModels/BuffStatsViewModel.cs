@@ -6,14 +6,18 @@ namespace AionDpsMeter.UI.ViewModels
     {
         private readonly BuffStats _stats;
         private readonly double? _uptimePercentage;
+        private readonly bool _ofActiveTime;
 
-        /// <param name="fightDuration">Same window the buff time was measured over (fight start to last hit).</param>
+        /// <param name="fightDuration">Same window the buff time was measured over (fight start to last hit).
+        /// Only used for fights saved before buff uptime was measured against the player's active time.</param>
         public BuffStatsViewModel(BuffStats stats, TimeSpan fightDuration)
         {
             _stats = stats;
-            _uptimePercentage = fightDuration > TimeSpan.Zero
-                ? Math.Min(100, stats.EffectiveDurationSeconds / fightDuration.TotalSeconds * 100)
-                : null;
+            _ofActiveTime = stats.ActiveUptimePercentage is not null;
+            _uptimePercentage = stats.ActiveUptimePercentage
+                ?? (fightDuration > TimeSpan.Zero
+                    ? Math.Min(100, stats.EffectiveDurationSeconds / fightDuration.TotalSeconds * 100)
+                    : null);
         }
 
         public int    BuffId                => _stats.BuffId;
@@ -25,12 +29,12 @@ namespace AionDpsMeter.UI.ViewModels
         public string ApplicationCountText  => $"x{_stats.ApplicationCount}";
         public string DurationFormatted     => _stats.DurationFormatted;
         public double EffectiveDurationSec  => _stats.EffectiveDurationSeconds;
-        // "01:23 (64% of the fight)", or just the time for fights saved before buff % existed.
+        // "64% of your active time (01:23 up)", or just the time for fights saved before buff % existed.
         public string UptimeWithPercent     => _uptimePercentage is { } p
-            ? $"{_stats.DurationFormatted} ({p:0}% of the fight)"
+            ? $"{p:0}% of {(_ofActiveTime ? "your active time" : "the fight")} ({_stats.DurationFormatted} up)"
             : _stats.DurationFormatted;
         public string CompactUptimeText     => _uptimePercentage is { } p
-            ? $"{_stats.DurationFormatted} {p:0}%"
+            ? $"{p:0}%"
             : _stats.DurationFormatted;
 
 

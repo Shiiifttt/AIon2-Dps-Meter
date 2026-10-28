@@ -36,6 +36,7 @@ namespace AionDpsMeter.Services.Services.Session
                 FrontAttacks = nonDotHits.Count(h => h.IsFrontAttack),
                 PerfectHits = nonDotHits.Count(h => h.IsPerfect),
                 DoubleDamageHits = nonDotHits.Count(h => h.IsDoubleDamage),
+                MultiHits = nonDotHits.Count(h => h.IsMultiHit),
                 ParryHits = nonDotHits.Count(h => h.IsParry),
 
                 DamagePerSecond = session.TotalDamage / duration,
@@ -158,6 +159,7 @@ namespace AionDpsMeter.Services.Services.Session
             merged.FrontAttacks = stats.Sum(s => s.FrontAttacks);
             merged.PerfectHits = stats.Sum(s => s.PerfectHits);
             merged.DoubleDamageHits = stats.Sum(s => s.DoubleDamageHits);
+            merged.MultiHits = stats.Sum(s => s.MultiHits);
             merged.ParryHits = stats.Sum(s => s.ParryHits);
 
             merged.MinHit = stats.Min(s => s.MinHit);
@@ -194,6 +196,7 @@ namespace AionDpsMeter.Services.Services.Session
             merged.FrontAttacks = skillStats.Sum(s => s.FrontAttacks);
             merged.PerfectHits = skillStats.Sum(s => s.PerfectHits);
             merged.DoubleDamageHits = skillStats.Sum(s => s.DoubleDamageHits);
+            merged.MultiHits = skillStats.Sum(s => s.MultiHits);
             merged.ParryHits = skillStats.Sum(s => s.ParryHits);
 
             merged.MinHit = skillStats.Min(s => s.MinHit);
@@ -236,6 +239,7 @@ namespace AionDpsMeter.Services.Services.Session
                 FrontAttacks = nonDot.Count(h => h.IsFrontAttack),
                 PerfectHits = nonDot.Count(h => h.IsPerfect),
                 DoubleDamageHits = nonDot.Count(h => h.IsDoubleDamage),
+                MultiHits = nonDot.Count(h => h.IsMultiHit),
                 ParryHits = nonDot.Count(h => h.IsParry),
 
                 MinHit = group.Min(h => h.Damage),

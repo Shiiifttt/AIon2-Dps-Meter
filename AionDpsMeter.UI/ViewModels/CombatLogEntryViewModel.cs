@@ -26,6 +26,7 @@ namespace AionDpsMeter.UI.ViewModels
         public bool IsFrontAttack     => _damageEvent.IsFrontAttack;
         public bool IsPerfect         => _damageEvent.IsPerfect;
         public bool IsDoubleDamage    => _damageEvent.IsDoubleDamage;
+        public bool IsMultiHit        => _damageEvent.IsMultiHit;
         public bool IsParry           => _damageEvent.IsParry;
 
         /// <summary>Delegates flag label aggregation to the domain model.</summary>

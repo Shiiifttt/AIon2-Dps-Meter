@@ -16,6 +16,9 @@
         public bool IsDoubleDamage { get; init; }
         public bool IsParry { get; init; }
         public bool IsDot { get; init; }
+        // Extra multi-hit strikes on this hit (0 = none). Their damage is already part of Damage.
+        public int MultiHitCount { get; init; }
+        public bool IsMultiHit => MultiHitCount > 0;
 
         // Share of the stagger gauge this hit took off the target (attributed, can be fractional).
         public double Break { get; set; }
@@ -35,6 +38,7 @@
                 if (IsFrontAttack)  flags.Add("FRONT");
                 if (IsPerfect)      flags.Add("PERFECT");
                 if (IsDoubleDamage) flags.Add("x2");
+                if (IsMultiHit)     flags.Add($"MULTI+{MultiHitCount}");
                 if (IsParry)        flags.Add("PARRY");
                 return flags.Count > 0 ? string.Join(" ", flags) : string.Empty;
             }

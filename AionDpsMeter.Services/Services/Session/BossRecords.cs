@@ -3,10 +3,17 @@ using AionDpsMeter.Services.Models;
 namespace AionDpsMeter.Services.Services.Session
 {
     /// <summary>Your DPS in one fight compared with your best on that boss (same character).</summary>
-    public sealed record PersonalBestComparison(string CharacterName, double Dps, double BestDps)
+    public sealed record PersonalBestComparison(string CharacterName, double Dps, double BestDps, Guid? BestSessionId = null)
     {
         public bool IsBest => Dps >= BestDps;
         public double DeltaPercent => BestDps > 0 ? (Dps - BestDps) / BestDps * 100 : 0;
+    }
+
+    /// <summary>How long this kill took compared with the fastest saved kill of that boss.</summary>
+    public sealed record KillTimeComparison(TimeSpan Duration, TimeSpan Fastest, Guid FastestSessionId, DateTime FastestAt)
+    {
+        public bool IsFastest => Duration <= Fastest;
+        public TimeSpan Delta => Duration - Fastest;
     }
 
     /// <summary>
@@ -21,7 +28,30 @@ namespace AionDpsMeter.Services.Services.Session
 
         private readonly Dictionary<int, double> bestUptimeByClass = new();
         private readonly Dictionary<string, double> bestDpsByCharacter = new();
+        private readonly Dictionary<string, Guid> bestDpsSessionByCharacter = new();
         private readonly Dictionary<Guid, (string Character, double Dps)> userDpsBySession = new();
+
+        // A fight counts as a kill when the party dealt (nearly) the boss's whole HP; a few hits can be lost.
+        private const double KillDamageShare = 0.97;
+        private static readonly TimeSpan MinKillFight = TimeSpan.FromSeconds(10);
+        private readonly Dictionary<Guid, TimeSpan> killTimeBySession = new();
+        private (Guid SessionId, TimeSpan Duration, DateTime At)? fastestKill;
+
+        public void AddFight(HistorySessionListItem fight)
+        {
+            if (fight.TargetHpTotal <= 0 || fight.TotalDamage < fight.TargetHpTotal * KillDamageShare) return;
+            if (fight.Duration < MinKillFight) return;
+
+            killTimeBySession[fight.SessionId] = fight.Duration;
+            if (fastestKill is not { } best || fight.Duration < best.Duration)
+                fastestKill = (fight.SessionId, fight.Duration, fight.SessionEnd);
+        }
+
+        /// <summary>Null when this fight wasn't a kill or no kill is saved.</summary>
+        public KillTimeComparison? CompareKillTime(Guid sessionId)
+            => killTimeBySession.TryGetValue(sessionId, out var duration) && fastestKill is { } best
+                ? new KillTimeComparison(duration, best.Duration, best.SessionId, best.At)
+                : null;
 
         public void Add(Guid sessionId, IEnumerable<PlayerStats> stats)
         {
@@ -39,6 +69,7 @@ namespace AionDpsMeter.Services.Services.Session
                 if (!bestDpsByCharacter.TryGetValue(character, out var bestDps) || s.DamagePerSecond > bestDps)
                 {
                     bestDpsByCharacter[character] = s.DamagePerSecond;
+                    bestDpsSessionByCharacter[character] = sessionId;
                 }
             }
         }
@@ -54,7 +85,8 @@ namespace AionDpsMeter.Services.Services.Session
 
         private PersonalBestComparison? Compare(string character, double dps)
             => bestDpsByCharacter.TryGetValue(character, out var best)
-                ? new PersonalBestComparison(CharacterName(character), dps, best)
+                ? new PersonalBestComparison(CharacterName(character), dps, best,
+                    bestDpsSessionByCharacter.TryGetValue(character, out var bestId) ? bestId : null)
                 : null;
 
         // Alts and class changes each get their own best.

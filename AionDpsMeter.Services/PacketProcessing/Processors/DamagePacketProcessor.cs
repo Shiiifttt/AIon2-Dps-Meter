@@ -80,7 +80,8 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
                 IsPerfect = data.IsPerfect,
                 IsDoubleDamage = data.IsDoubleDamage,
                 IsParry = data.IsParry,
-                IsFrontAttack = data.IsFrontAttack
+                IsFrontAttack = data.IsFrontAttack,
+                MultiHitCount = data.MultiHitCount
             };
         }
 
@@ -93,7 +94,8 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
             reader.ReadU16();    //opcode
 
             var targetId = reader.ReadVarInt();
-            var switchValue = ProcessSwitchValue((int)reader.ReadVarInt());
+            var rawSwitch = (int)reader.ReadVarInt();
+            var switchValue = ProcessSwitchValue(rawSwitch);
             if (switchValue < 0) return Fail(PacketProcessResult.SWITH_VALUE_ERROR);
             reader.ReadVarInt(); // unkown flag
             var actorId = reader.ReadVarInt();
@@ -107,6 +109,7 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
             var specialFlags = ReadSpecialBytesBlock(reader, switchValue);
             var unknownVarInt = reader.ReadVarInt(); // unknown
             var damage = reader.ReadVarInt();
+            var multiHitCount = ReadMultiHitCount(reader, rawSwitch, switchValue);
 
             var data = new DamagePacketData
             {
@@ -121,11 +124,34 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
                 IsParry = specialFlags.IsParry,
                 IsPerfect = specialFlags.IsPerfect,
                 IsDoubleDamage = specialFlags.IsDoubleDamage,
+                MultiHitCount = multiHitCount,
                 UnknownVarInt = (int)unknownVarInt
             };
 
             return new ParsedDamagePacket(data, PacketProcessResult.SUCCES);
 
+        }
+
+        // Switch bit 0x20: after the damage comes <count> then one damage value per extra multi-hit strike.
+        // The strikes are already included in the damage (boss HP drops by the damage alone), so only the
+        // count is kept. With switch 4, bit 0x10 puts one extra varint in front of the list.
+        private const int MultiHitSwitchBit = 0x20;
+        private const int ExtraFieldSwitchBit = 0x10;
+        private const int MaxMultiHitCount = 10;
+
+        private static int ReadMultiHitCount(PacketReader reader, int rawSwitch, int switchValue)
+        {
+            if ((rawSwitch & MultiHitSwitchBit) == 0) return 0;
+            try
+            {
+                if (switchValue == 4 && (rawSwitch & ExtraFieldSwitchBit) != 0) reader.ReadVarInt();
+                var count = (int)reader.ReadVarInt();
+                return count is > 0 and <= MaxMultiHitCount ? count : 0;
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
         }
 
         private int ProcessSwitchValue(int switchVar)
@@ -203,6 +229,7 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
             public bool IsParry { get; init; }
             public bool IsPerfect { get; init; }
             public bool IsDoubleDamage { get; init; }
+            public int MultiHitCount { get; init; }
             public DateTime Timestamp { get; init; } = DateTime.Now;
             public int UnknownVarInt { get; init; }
         }

@@ -110,6 +110,7 @@ namespace AionDpsMeter.Services.Services.Pets
 
         public void OnSoulsGained(IReadOnlyList<(int PetId, int Amount)> gains, DateTime at)
         {
+            var added = new List<PetSoulGain>(gains.Count);
             lock (gate)
             {
                 current ??= new PetCollectionData();
@@ -117,10 +118,31 @@ namespace AionDpsMeter.Services.Services.Pets
                 {
                     var progress = Progress(pet);
                     progress.Souls += amount;
-                    recentGains.Insert(0, new PetSoulGain(at, pet, GameDataProvider.Instance.Pets.GetName(pet), amount, progress.Rank, progress.Souls));
+                    var gain = new PetSoulGain(at, pet, GameDataProvider.Instance.Pets.GetName(pet), amount, progress.Rank, progress.Souls);
+                    recentGains.Insert(0, gain);
+                    added.Add(gain);
                 }
                 if (recentGains.Count > MaxRecentGains) recentGains.RemoveRange(MaxRecentGains, recentGains.Count - MaxRecentGains);
                 Changed(at);
+            }
+            SoulsGained?.Invoke(added);
+        }
+
+        /// <summary>Raised after souls were counted, with the pets' progress after the gain.</summary>
+        public event Action<IReadOnlyList<PetSoulGain>>? SoulsGained;
+
+        /// <summary>Whether anything is known about the collection (otherwise every count reads 0).</summary>
+        public bool HasCollection
+        {
+            get { lock (gate) return current is not null; }
+        }
+
+        /// <summary>Rank and souls toward the next rank; (0, 0) for pets not seen yet.</summary>
+        public (int Rank, int Souls) GetProgress(int petId)
+        {
+            lock (gate)
+            {
+                return current?.Pets.TryGetValue(petId, out var progress) == true ? (progress.Rank, progress.Souls) : (0, 0);
             }
         }
 

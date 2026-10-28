@@ -11,6 +11,9 @@ namespace AionDpsMeter.Services.Models
 
         public double EffectiveDurationSeconds { get; init; }
 
+        // Share of the player's own active (attacking) time this buff was up. Null for fights saved before it existed.
+        public double? ActiveUptimePercentage { get; init; }
+
         public string DurationFormatted
         {
             get

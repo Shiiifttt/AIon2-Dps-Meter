@@ -168,11 +168,12 @@ namespace AionDpsMeter.Services.Services.Session
                 .Select(s =>
                 {
                     var stats = DamageStatisticsCalculator.ComputePlayerStats(s, totalDamage, LastStaggerAt);
-                    if (uptime.ByPlayer.TryGetValue(s.PlayerId, out var active) && uptime.PartyActive > TimeSpan.Zero)
+                    if (uptime.ActiveByPlayer.TryGetValue(s.PlayerId, out var activeIntervals) && uptime.FightSeconds > 0)
                     {
-                        stats.ActiveSeconds = active.TotalSeconds;
-                        stats.IdleSeconds = (uptime.PartyActive - active).TotalSeconds;
-                        stats.UptimePercentage = Math.Min(100, active / uptime.PartyActive * 100);
+                        var active = UptimeCalculator.Total(activeIntervals).TotalSeconds;
+                        stats.ActiveSeconds = active;
+                        stats.IdleSeconds = Math.Max(0, uptime.FightSeconds - active);
+                        stats.UptimePercentage = Math.Min(100, active / uptime.FightSeconds * 100);
                     }
                     return stats;
                 })
@@ -183,28 +184,33 @@ namespace AionDpsMeter.Services.Services.Session
         // Uptime needs every player's hits sorted, so it's refreshed at most once a second while
         // the fight runs (the main meter reads stats ~30 times a second) and exactly once it ends.
         private static readonly TimeSpan UptimeRefreshInterval = TimeSpan.FromSeconds(1);
-        private (TimeSpan PartyActive, Dictionary<long, TimeSpan> ByPlayer) uptimeCache = (TimeSpan.Zero, new());
+        private UptimeCalculator.Result uptimeCache = UptimeCalculator.Result.Empty;
         private int uptimeCacheHitCount = -1;
         private DateTime uptimeCacheAt;
         private bool uptimeCacheFinal;
 
-        private (TimeSpan PartyActive, Dictionary<long, TimeSpan> ByPlayer) GetUptime()
+        private UptimeCalculator.Result GetUptime()
         {
             int hitCount = playerSessions.Values.Sum(s => s.Hits.Count);
             bool stale = hitCount != uptimeCacheHitCount
                          && (IsCompleted || DateTime.Now - uptimeCacheAt >= UptimeRefreshInterval);
             if (!stale && !(IsCompleted && !uptimeCacheFinal)) return uptimeCache;
 
-            var times = playerSessions.ToDictionary(p => p.Key, p => UptimeCalculator.ActiveHitTimes(p.Value.Hits));
-            var partyActive = UptimeCalculator.ActiveTime(UptimeCalculator.Merge(times.Values), LastHitTime);
-            var byPlayer = times.ToDictionary(t => t.Key, t => UptimeCalculator.ActiveTime(t.Value, LastHitTime));
+            // Summons the meter hasn't linked to an owner yet hit under their own id; they aren't party members.
+            var times = playerSessions
+                .Where(p => !entityTracker.IsSummon((int)p.Key))
+                .ToDictionary(p => p.Key, p => UptimeCalculator.ActiveHitTimes(p.Value.Hits));
 
-            uptimeCache = (partyActive, byPlayer);
+            uptimeCache = UptimeCalculator.Compute(times, LastHitTime);
             uptimeCacheHitCount = hitCount;
             uptimeCacheAt = DateTime.Now;
             uptimeCacheFinal = IsCompleted;
             return uptimeCache;
         }
+
+        /// <summary>When this player was attacking during fight time (see <see cref="UptimeCalculator"/>).</summary>
+        public IReadOnlyList<TimeInterval> GetActiveIntervals(long playerId)
+            => GetUptime().ActiveByPlayer.TryGetValue(playerId, out var active) ? active : [];
 
         public IReadOnlyList<PlayerDamage> GetCombatLog(long playerId)
         {
@@ -303,6 +309,7 @@ namespace AionDpsMeter.Services.Services.Session
                     IsDoubleDamage = hit.IsDoubleDamage,
                     IsParry        = hit.IsParry,
                     IsDot          = hit.IsDot,
+                    MultiHitCount  = hit.MultiHitCount,
                     Break          = hit.Break,
                 };
                 ownerSession.AddDamage(reStamped);

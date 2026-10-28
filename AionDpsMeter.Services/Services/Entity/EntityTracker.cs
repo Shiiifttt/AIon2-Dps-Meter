@@ -9,6 +9,14 @@ namespace AionDpsMeter.Services.Services.Entity
         // Fired when a summon is registered: (summonId, ownerId)
         public event Action<int, int>? SummonRegistered;
 
+        /// <summary>A monster came into range (entity id, mob code). Sent again when it respawns or you come back.</summary>
+        public event Action<int, int>? MobSpawned;
+
+        /// <summary>Any entity died (entity id).</summary>
+        public event Action<int>? EntityDied;
+
+        public void NotifyEntityDied(int entityId) => EntityDied?.Invoke(entityId);
+
         // Fired when the local character is known: (name, server name, which may be empty)
         public event Action<string, string>? UserIdentified;
 
@@ -76,6 +84,8 @@ namespace AionDpsMeter.Services.Services.Entity
 
         public Mob CreateOrUpdateTargetEntity(int entityId, int mobCode, long hpTotal = 0)
         {
+            if (mobCode > 0) MobSpawned?.Invoke(entityId, mobCode);
+
             if (targetEntities.TryGetValue(entityId, out var entity))
             {
                 entity.MobCode = mobCode;
