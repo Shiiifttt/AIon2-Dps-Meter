@@ -155,6 +155,18 @@ namespace AionDpsMeter.UI.Services.Windowing
             else ShowMeter();
         }
 
+        /// <summary>Shows the meter if it's in the tray and brings it to the front (someone launched the app again).</summary>
+        public void BringMeterToFront()
+        {
+            if (!MainWindow.IsVisible)
+            {
+                ShowMeter();
+                return;
+            }
+            if (MainWindow.WindowState == WindowState.Minimized) MainWindow.WindowState = WindowState.Normal;
+            if (!IsMainClickThrough) MainWindow.Activate();
+        }
+
         /// <summary>Hides just the meter window to the tray (the meter's own hide button).</summary>
         public void HideMeter() => MainWindow.Hide();
 

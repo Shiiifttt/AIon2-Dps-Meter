@@ -11,6 +11,7 @@ using AionDpsMeter.Services.Services.Settings;
 using AionDpsMeter.Services.Services.Timed;
 using AionDpsMeter.Services.Services.Update;
 using AionDpsMeter.Core.Windowing;
+using AionDpsMeter.UI.Services;
 using AionDpsMeter.UI.Services.Windowing;
 using AionDpsMeter.UI.ViewModels;
 using AionDpsMeter.UI.Views;
@@ -29,11 +30,17 @@ namespace AionDpsMeter.UI
         public static IHost AppHost { get; private set; }
 
         private TrayIcon? _trayIcon;
+        private readonly SingleInstance? _singleInstance;
 
         public App()
         {
-
-          
+            // Already running: that copy shows itself, this one leaves before touching anything.
+            _singleInstance = SingleInstance.TryAcquire();
+            if (_singleInstance is null)
+            {
+                Environment.Exit(0);
+                return;
+            }
 
             AppHost = Host.CreateDefaultBuilder()
                 .UseSerilog((context, services, loggerConfiguration) =>
@@ -91,6 +98,7 @@ namespace AionDpsMeter.UI
             windowManager.Open(WindowKey.Main, mainWindow, true);
             windowHelper.OpenRequiredWindows();
             _trayIcon = new TrayIcon(windowHelper, AppHost.Services.GetRequiredService<IAppSettingsService>(), windowManager);
+            _singleInstance?.ListenForShowRequests(() => Dispatcher.BeginInvoke(windowHelper.BringMeterToFront));
             base.OnStartup(e);
         }
 
@@ -105,6 +113,8 @@ namespace AionDpsMeter.UI
                 historyStore.FlushPendingSaves();
                 await AppHost.StopAsync();
                 await Log.CloseAndFlushAsync();
+                // Only now, with history saved, may another copy start.
+                _singleInstance?.Dispose();
                 base.OnExit(e);
             }
             catch (Exception ex)
