@@ -32,6 +32,7 @@ namespace AionDpsMeter.UI.ViewModels.History
             _snapshot = snapshot;
             TotalBreak = snapshot.PlayerStats.Sum(p => p.TotalBreak);
             var buffStats = RecomputeOldFightUptime(snapshot);
+            FillOldFightSkillStagger(snapshot);
             Players = snapshot.PlayerStats.Where(r => r.IsIdentified || r.DamagePercentage > 1)
                 .OrderByDescending(p => p.TotalDamage)
                 .Select(p => new HistoryPlayerViewModel(
@@ -54,6 +55,26 @@ namespace AionDpsMeter.UI.ViewModels.History
 
         // Fights saved before buff uptime was measured against active time (and before downtime needed
         // more than one player hitting) get both recomputed from their saved hits.
+        // Fights saved before skills kept their stagger: add it up from the saved hits, which carry it.
+        private static void FillOldFightSkillStagger(HistorySessionSnapshot snapshot)
+        {
+            foreach (var player in snapshot.PlayerStats.Where(p => p.TotalBreak > 0))
+            {
+                if (!snapshot.SkillStatsByPlayer.TryGetValue(player.PlayerId, out var skills)) continue;
+                if (skills.Any(s => s.TotalBreak > 0 || s.SummonChildren.Any(c => c.TotalBreak > 0))) continue;
+                if (!snapshot.HitsByPlayer.TryGetValue(player.PlayerId, out var hits)) continue;
+
+                var bySkill = hits.GroupBy(h => (long)h.Skill.Id).ToDictionary(g => g.Key, g => g.Sum(h => h.Break));
+                foreach (var skill in skills)
+                {
+                    foreach (var child in skill.SummonChildren) child.TotalBreak = bySkill.GetValueOrDefault(child.SkillId);
+                    skill.TotalBreak = skill.IsSummonGroup
+                        ? skill.SummonChildren.Sum(c => c.TotalBreak)
+                        : bySkill.GetValueOrDefault(skill.SkillId);
+                }
+            }
+        }
+
         private static IReadOnlyDictionary<long, IReadOnlyCollection<BuffStats>> RecomputeOldFightUptime(HistorySessionSnapshot snapshot)
         {
             bool upToDate = snapshot.BuffStatsByPlayer.Values.All(list => list.All(b => b.ActiveUptimePercentage is not null));

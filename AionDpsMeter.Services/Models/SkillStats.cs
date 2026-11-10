@@ -15,6 +15,8 @@
         public int DoubleDamageHits { get; set; }
         public int MultiHits { get; set; }
         public int ParryHits { get; set; }
+        // Stagger gauge this skill took off the target (attributed per hit, can be fractional).
+        public double TotalBreak { get; set; }
         public long MaxHit { get; set; }
         /// <summary>Raw minimum hit. Initialised to <see cref="long.MaxValue"/> as a sentinel meaning "no hit yet".</summary>
         public long MinHit { get; set; } = long.MaxValue;
@@ -59,6 +61,7 @@
                 DoubleDamageHits = DoubleDamageHits,
                 MultiHits = MultiHits,
                 ParryHits = ParryHits,
+                TotalBreak = TotalBreak,
                 MaxHit = MaxHit,
                 MinHit = MinHit,
                 DamagePerSecond = DamagePerSecond,

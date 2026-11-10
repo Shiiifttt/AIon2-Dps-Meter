@@ -59,6 +59,8 @@ namespace AionDpsMeter.UI.ViewModels
         public int    DoubleDamageHits     => _stats.DoubleDamageHits;
         public int    MultiHits            => _stats.MultiHits;
         public int    ParryHits            => _stats.ParryHits;
+        public double TotalBreak           => _stats.TotalBreak;
+        public string TotalBreakFormatted  => _stats.TotalBreak > 0 ? _stats.TotalBreak.ToString("0.#") : "—";
 
         // ── Per-hit values ────────────────────────────────────────────────────
         public double AverageDamage        => _stats.AverageDamage;
@@ -96,6 +98,7 @@ namespace AionDpsMeter.UI.ViewModels
             _stats.DoubleDamageHits   = stats.DoubleDamageHits;
             _stats.MultiHits          = stats.MultiHits;
             _stats.ParryHits          = stats.ParryHits;
+            _stats.TotalBreak         = stats.TotalBreak;
             _stats.MaxHit             = stats.MaxHit;
             _stats.MinHit             = stats.MinHit;
             _stats.DamagePerSecond    = stats.DamagePerSecond;
@@ -129,6 +132,8 @@ namespace AionDpsMeter.UI.ViewModels
             OnPropertyChanged(nameof(DoubleDamageHits));
             OnPropertyChanged(nameof(MultiHits));
             OnPropertyChanged(nameof(ParryHits));
+            OnPropertyChanged(nameof(TotalBreak));
+            OnPropertyChanged(nameof(TotalBreakFormatted));
             OnPropertyChanged(nameof(AverageDamage));
             OnPropertyChanged(nameof(AverageDamageFormatted));
             OnPropertyChanged(nameof(MaxHit));

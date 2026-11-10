@@ -161,6 +161,7 @@ namespace AionDpsMeter.Services.Services.Session
             merged.DoubleDamageHits = stats.Sum(s => s.DoubleDamageHits);
             merged.MultiHits = stats.Sum(s => s.MultiHits);
             merged.ParryHits = stats.Sum(s => s.ParryHits);
+            merged.TotalBreak = stats.Sum(s => s.TotalBreak);
 
             merged.MinHit = stats.Min(s => s.MinHit);
             merged.MaxHit = stats.Max(s => s.MaxHit);
@@ -198,6 +199,7 @@ namespace AionDpsMeter.Services.Services.Session
             merged.DoubleDamageHits = skillStats.Sum(s => s.DoubleDamageHits);
             merged.MultiHits = skillStats.Sum(s => s.MultiHits);
             merged.ParryHits = skillStats.Sum(s => s.ParryHits);
+            merged.TotalBreak = skillStats.Sum(s => s.TotalBreak);
 
             merged.MinHit = skillStats.Min(s => s.MinHit);
             merged.MaxHit = skillStats.Max(s => s.MaxHit);
@@ -241,6 +243,7 @@ namespace AionDpsMeter.Services.Services.Session
                 DoubleDamageHits = nonDot.Count(h => h.IsDoubleDamage),
                 MultiHits = nonDot.Count(h => h.IsMultiHit),
                 ParryHits = nonDot.Count(h => h.IsParry),
+                TotalBreak = group.Sum(h => h.Break),
 
                 MinHit = group.Min(h => h.Damage),
                 MaxHit = group.Max(h => h.Damage),
