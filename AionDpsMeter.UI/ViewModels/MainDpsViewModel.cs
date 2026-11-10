@@ -67,6 +67,7 @@ namespace AionDpsMeter.UI.ViewModels
         {
             sessionManager.PingUpdated += OnPingUpdated;
             settingsService.SettingsChanged += OnSettingsChanged;
+            windowHelper.ResetMeterRequested += ResetMeter;
 
             RowScale = settingsService.PlayerRowScale > 0 ? settingsService.PlayerRowScale : 1.0;
 
@@ -306,6 +307,7 @@ namespace AionDpsMeter.UI.ViewModels
             _refreshTimer?.Dispose();
             sessionManager.PingUpdated -= OnPingUpdated;
             settingsService.SettingsChanged -= OnSettingsChanged;
+            windowHelper.ResetMeterRequested -= ResetMeter;
         }
 
     }

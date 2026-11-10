@@ -2,10 +2,19 @@ using AionDpsMeter.Services.Models;
 
 namespace AionDpsMeter.Services.Services.Session
 {
-    /// <summary>Your DPS in one fight compared with your best on that boss (same character).</summary>
-    public sealed record PersonalBestComparison(string CharacterName, double Dps, double BestDps, Guid? BestSessionId = null)
+    /// <summary>Your DPS in one fight compared with your best fight on that boss (same character).</summary>
+    /// <param name="IsBest">This fight is the personal best.</param>
+    /// <param name="BestIsClear">False when the boss was never cleared and the best is the attempt that got it lowest.</param>
+    /// <param name="BestRemainingHpPercent">Boss HP left in the best fight (0 for a clear).</param>
+    public sealed record PersonalBestComparison(
+        string CharacterName,
+        double Dps,
+        double BestDps,
+        Guid? BestSessionId,
+        bool IsBest,
+        bool BestIsClear,
+        double? BestRemainingHpPercent)
     {
-        public bool IsBest => Dps >= BestDps;
         public double DeltaPercent => BestDps > 0 ? (Dps - BestDps) / BestDps * 100 : 0;
     }
 
@@ -18,29 +27,37 @@ namespace AionDpsMeter.Services.Services.Session
 
     /// <summary>
     /// Bests against one boss from saved fights: uptime per class (anyone you've grouped with)
-    /// and your own DPS per character. Short fights don't count, so a quick wipe with one burst
-    /// rotation can't become a record.
+    /// and your own personal best per character. The personal best is your highest DPS among clears;
+    /// until the boss has been cleared it is the attempt that got the boss's HP lowest. Short fights
+    /// don't count, so a quick wipe with one burst rotation can't become a record.
     /// </summary>
     public sealed class BossRecords
     {
         private static readonly TimeSpan MinUptimeFight = TimeSpan.FromMinutes(1);
         private static readonly TimeSpan MinDpsFight = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan MinKillFight = TimeSpan.FromSeconds(10);
+
+        // Training dummies never die: their best is simply the highest DPS.
+        private readonly bool isDummy;
 
         private readonly Dictionary<int, double> bestUptimeByClass = new();
-        private readonly Dictionary<string, double> bestDpsByCharacter = new();
-        private readonly Dictionary<string, Guid> bestDpsSessionByCharacter = new();
         private readonly Dictionary<Guid, (string Character, double Dps)> userDpsBySession = new();
+        private readonly Dictionary<Guid, (bool IsClear, double? RemainingHpPercent)> outcomeBySession = new();
+        private readonly Dictionary<string, Best> bestByCharacter = new();
 
-        // A fight counts as a kill when the party dealt (nearly) the boss's whole HP; a few hits can be lost.
-        private const double KillDamageShare = 0.97;
-        private static readonly TimeSpan MinKillFight = TimeSpan.FromSeconds(10);
         private readonly Dictionary<Guid, TimeSpan> killTimeBySession = new();
         private (Guid SessionId, TimeSpan Duration, DateTime At)? fastestKill;
 
+        private sealed record Best(Guid SessionId, double Dps, bool IsClear, double? RemainingHpPercent);
+
+        public BossRecords(bool isDummy = false) => this.isDummy = isDummy;
+
         public void AddFight(HistorySessionListItem fight)
         {
-            if (fight.TargetHpTotal <= 0 || fight.TotalDamage < fight.TargetHpTotal * KillDamageShare) return;
-            if (fight.Duration < MinKillFight) return;
+            outcomeBySession[fight.SessionId] = (fight.IsClear, fight.RemainingHpPercent);
+            bestByCharacter.Clear();
+
+            if (!fight.IsClear || fight.Duration < MinKillFight) return;
 
             killTimeBySession[fight.SessionId] = fight.Duration;
             if (fastestKill is not { } best || fight.Duration < best.Duration)
@@ -66,28 +83,49 @@ namespace AionDpsMeter.Services.Services.Session
 
                 if (UserCharacter(s) is not { } character || s.CombatDuration < MinDpsFight) continue;
                 userDpsBySession[sessionId] = (character, s.DamagePerSecond);
-                if (!bestDpsByCharacter.TryGetValue(character, out var bestDps) || s.DamagePerSecond > bestDps)
-                {
-                    bestDpsByCharacter[character] = s.DamagePerSecond;
-                    bestDpsSessionByCharacter[character] = sessionId;
-                }
+                bestByCharacter.Clear();
             }
         }
 
         public double? BestUptime(int classId) => bestUptimeByClass.TryGetValue(classId, out var best) ? best : null;
 
         public PersonalBestComparison? CompareSaved(Guid sessionId)
-            => userDpsBySession.TryGetValue(sessionId, out var mine) ? Compare(mine.Character, mine.Dps) : null;
+            => userDpsBySession.TryGetValue(sessionId, out var mine) ? Compare(mine.Character, mine.Dps, sessionId) : null;
 
         /// <summary>For a fight still in progress (not saved yet).</summary>
         public PersonalBestComparison? CompareLive(IEnumerable<PlayerStats> stats)
-            => stats.Select(s => UserCharacter(s) is { } c && s.CombatDuration >= MinDpsFight ? Compare(c, s.DamagePerSecond) : null).FirstOrDefault(c => c is not null);
+            => stats.Select(s => UserCharacter(s) is { } c && s.CombatDuration >= MinDpsFight ? Compare(c, s.DamagePerSecond, null) : null)
+                .FirstOrDefault(c => c is not null);
 
-        private PersonalBestComparison? Compare(string character, double dps)
-            => bestDpsByCharacter.TryGetValue(character, out var best)
-                ? new PersonalBestComparison(CharacterName(character), dps, best,
-                    bestDpsSessionByCharacter.TryGetValue(character, out var bestId) ? bestId : null)
+        private PersonalBestComparison? Compare(string character, double dps, Guid? sessionId)
+            => BestFor(character) is { } best
+                ? new PersonalBestComparison(CharacterName(character), dps, best.Dps, best.SessionId,
+                    IsBest: sessionId == best.SessionId, best.IsClear, best.RemainingHpPercent)
                 : null;
+
+        private Best? BestFor(string character)
+        {
+            if (bestByCharacter.TryGetValue(character, out var cached)) return cached;
+
+            var fights = userDpsBySession
+                .Where(kv => kv.Value.Character == character)
+                .Select(kv =>
+                {
+                    var outcome = outcomeBySession.TryGetValue(kv.Key, out var o) ? o : (IsClear: false, RemainingHpPercent: null);
+                    return new Best(kv.Key, kv.Value.Dps, outcome.IsClear, outcome.RemainingHpPercent);
+                })
+                .ToList();
+            if (fights.Count == 0) return null;
+
+            var clears = fights.Where(f => f.IsClear).ToList();
+            var best = isDummy ? fights.MaxBy(f => f.Dps)
+                : clears.Count > 0 ? clears.MaxBy(f => f.Dps)
+                // No clear yet: the attempt that got the boss lowest (unknown HP counts as untouched), then DPS.
+                : fights.OrderBy(f => f.RemainingHpPercent ?? 100).ThenByDescending(f => f.Dps).First();
+
+            bestByCharacter[character] = best!;
+            return best;
+        }
 
         // Alts and class changes each get their own best.
         private static string? UserCharacter(PlayerStats s)

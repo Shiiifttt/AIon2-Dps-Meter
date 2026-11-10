@@ -18,6 +18,7 @@ namespace AionDpsMeter.UI.Services.Windowing
         private readonly ToolStripMenuItem _showHideItem;
         private readonly ToolStripMenuItem _clickThroughItem;
         private readonly ToolStripMenuItem _petCollectionItem;
+        private readonly ToolStripMenuItem _startupItem;
 
         public TrayIcon(WindowHelper windowHelper, IAppSettingsService settingsService, IWindowManagerService windowManager)
         {
@@ -27,13 +28,24 @@ namespace AionDpsMeter.UI.Services.Windowing
             _showHideItem = new ToolStripMenuItem("Hide meter", null, (_, _) => windowHelper.ToggleMeterVisibility());
             _showHideItem.Font = new Font(_showHideItem.Font, System.Drawing.FontStyle.Bold);
             _clickThroughItem = new ToolStripMenuItem("Click-through", null, (_, _) => settingsService.MainClickThrough = !settingsService.MainClickThrough);
+            _petCollectionItem = new ToolStripMenuItem("Pet collection", null, (_, _) => WithMeterShown(windowHelper.OpenPetCollection));
+            _startupItem = new ToolStripMenuItem("Start with Windows", null, (_, _) => StartupRegistration.SetEnabled(!StartupRegistration.IsEnabled));
 
+            // Everything the meter's title bar buttons do, plus what only the tray can do.
             var menu = new ContextMenuStrip();
             menu.Items.Add(_showHideItem);
             menu.Items.Add(_clickThroughItem);
-            _petCollectionItem = new ToolStripMenuItem("Pet collection", null, (_, _) => OpenPetCollection());
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(new ToolStripMenuItem("Reset meter", null, (_, _) => windowHelper.ResetMeter())
+            {
+                ToolTipText = "Saves the current fight to history and clears the meter",
+            });
+            menu.Items.Add(new ToolStripMenuItem("History", null, (_, _) => WithMeterShown(windowHelper.OpenHistory)));
+            menu.Items.Add(new ToolStripMenuItem("Stat efficiency calculator", null, (_, _) => WithMeterShown(windowHelper.OpenStatEff)));
             menu.Items.Add(_petCollectionItem);
-            menu.Items.Add(new ToolStripMenuItem("Settings", null, (_, _) => OpenSettings()));
+            menu.Items.Add(new ToolStripMenuItem("Settings", null, (_, _) => WithMeterShown(windowHelper.OpenSettings)));
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(_startupItem);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Exit", null, (_, _) => windowManager.CloseApplication()));
             menu.Opening += (_, _) => RefreshMenu();
@@ -57,20 +69,15 @@ namespace AionDpsMeter.UI.Services.Windowing
             _showHideItem.Text = windowHelper.IsMeterVisible ? "Hide meter" : "Show meter";
             _clickThroughItem.Checked = settingsService.MainClickThrough;
             _petCollectionItem.Visible = settingsService.TrackPetCollection;
+            _startupItem.Checked = StartupRegistration.IsEnabled;
         }
 
-        private void OpenSettings()
+        // These windows belong to the meter, so bring it back from the tray first.
+        private void WithMeterShown(Action open)
         {
             if (!windowHelper.IsMeterVisible)
                 windowHelper.ToggleMeterVisibility();
-            windowHelper.OpenSettings();
-        }
-
-        private void OpenPetCollection()
-        {
-            if (!windowHelper.IsMeterVisible)
-                windowHelper.ToggleMeterVisibility();
-            windowHelper.OpenPetCollection();
+            open();
         }
 
         private static Icon LoadAppIcon()

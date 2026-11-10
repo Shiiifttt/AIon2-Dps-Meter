@@ -6,6 +6,7 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
         public int TargetId { get; set; }
         public string TargetName { get; set; } = string.Empty;
         public long TargetHpTotal { get; set; }
+        public long? TargetHpRemaining { get; set; }
         public DateTime SessionStart { get; set; }
         public DateTime SessionEnd { get; set; }
         public SessionState State { get; set; }

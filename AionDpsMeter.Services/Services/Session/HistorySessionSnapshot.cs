@@ -10,6 +10,7 @@ namespace AionDpsMeter.Services.Services.Session
         public int TargetId { get; init; }
         public string TargetName { get; init; } = string.Empty;
         public long TargetHpTotal { get; init; }
+        public long? TargetHpRemaining { get; init; }
         public DateTime SessionStart { get; init; }
         public DateTime SessionEnd { get; init; }
         public SessionState State { get; init; }
@@ -66,6 +67,7 @@ namespace AionDpsMeter.Services.Services.Session
                 TargetId           = session.TargetId,
                 TargetName         = session.TargetInfo.Name,
                 TargetHpTotal      = session.TargetInfo.HpTotal,
+                TargetHpRemaining  = session.TargetHpAtLastHit,
                 SessionStart       = session.SessionStart,
                 SessionEnd         = session.LastHitTime,
                 State              = session.State,

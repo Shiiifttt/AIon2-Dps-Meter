@@ -33,6 +33,10 @@ namespace AionDpsMeter.Services.Services.Settings
         double? WindowHeight { get; set; }
         double PlayerRowScale { get; set; }
         int UiStyle { get; set; }
+        /// <summary>Width and height the meter had in this layout, if it has been used.</summary>
+        bool TryGetMeterSize(int uiStyle, out double width, out double height);
+        void SetMeterSize(int uiStyle, double width, double height);
+        bool HistoryHideNonClears { get; set; }
 
         public bool UseClassColors { get; set; }
 

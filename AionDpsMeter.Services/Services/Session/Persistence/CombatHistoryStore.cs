@@ -31,7 +31,38 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
             _settingsService = settingsService;
             using var db = _dbContextFactory.CreateDbContext();
             db.Database.EnsureCreated();
+            AddMissingColumns(db);
             _ = Task.Run(CleanupExpiredSessionsSafe);
+        }
+
+        // EnsureCreated only builds a missing database; columns added since have to be added by hand.
+        private void AddMissingColumns(CombatHistoryDbContext db)
+        {
+            try
+            {
+                var connection = db.Database.GetDbConnection();
+                if (connection.State != System.Data.ConnectionState.Open) connection.Open();
+
+                var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = "PRAGMA table_info(CombatSessions)";
+                    using var reader = cmd.ExecuteReader();
+                    while (reader.Read()) columns.Add(reader.GetString(1));
+                }
+
+                if (!columns.Contains(nameof(CombatSessionEntity.TargetHpRemaining)))
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE CombatSessions ADD COLUMN TargetHpRemaining INTEGER NULL";
+                    cmd.ExecuteNonQuery();
+                    _logger.LogInformation("Added TargetHpRemaining column to combat history.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to upgrade the combat history schema");
+            }
         }
 
         public void Save(HistorySessionSnapshot snapshot)
@@ -42,6 +73,7 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
                 TargetId = snapshot.TargetId,
                 TargetName = snapshot.TargetName,
                 TargetHpTotal = snapshot.TargetHpTotal,
+                TargetHpRemaining = snapshot.TargetHpRemaining,
                 SessionStart = snapshot.SessionStart,
                 SessionEnd = snapshot.SessionEnd,
                 State = snapshot.State,
@@ -76,6 +108,7 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
                     TargetId = x.TargetId,
                     TargetName = x.TargetName,
                     TargetHpTotal = x.TargetHpTotal,
+                    TargetHpRemaining = x.TargetHpRemaining,
                     SessionStart = x.SessionStart,
                     SessionEnd = x.SessionEnd,
                     State = x.State,
@@ -85,10 +118,10 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
                 .ToList();
         }
 
-        public int GetSessionCount(DateTime? dateFrom, DateTime? dateTo, string? bossNameContains, IReadOnlySet<Guid>? excludeSessionIds = null)
+        public int GetSessionCount(DateTime? dateFrom, DateTime? dateTo, string? bossNameContains, IReadOnlySet<Guid>? excludeSessionIds = null, bool onlyClears = false)
         {
             using var db = _dbContextFactory.CreateDbContext();
-            return BuildFilteredQuery(db, dateFrom, dateTo, bossNameContains, excludeSessionIds).Count();
+            return BuildFilteredQuery(db, dateFrom, dateTo, bossNameContains, excludeSessionIds, onlyClears).Count();
         }
 
         public IReadOnlyList<HistorySessionListItem> GetSessionPage(
@@ -97,11 +130,12 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
             string? bossNameContains,
             int skip,
             int take,
-            IReadOnlySet<Guid>? excludeSessionIds = null)
+            IReadOnlySet<Guid>? excludeSessionIds = null,
+            bool onlyClears = false)
         {
             using var db = _dbContextFactory.CreateDbContext();
 
-            return BuildFilteredQuery(db, dateFrom, dateTo, bossNameContains, excludeSessionIds)
+            return BuildFilteredQuery(db, dateFrom, dateTo, bossNameContains, excludeSessionIds, onlyClears)
                 .OrderByDescending(x => x.SessionEnd)
                 .Skip(Math.Max(0, skip))
                 .Take(Math.Max(0, take))
@@ -111,6 +145,7 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
                     TargetId = x.TargetId,
                     TargetName = x.TargetName,
                     TargetHpTotal = x.TargetHpTotal,
+                    TargetHpRemaining = x.TargetHpRemaining,
                     SessionStart = x.SessionStart,
                     SessionEnd = x.SessionEnd,
                     State = x.State,
@@ -143,6 +178,7 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
                 TargetId = entity.TargetId,
                 TargetName = entity.TargetName,
                 TargetHpTotal = entity.TargetHpTotal,
+                TargetHpRemaining = entity.TargetHpRemaining,
                 SessionStart = entity.SessionStart,
                 SessionEnd = entity.SessionEnd,
                 State = entity.State,
@@ -181,6 +217,7 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
                     TargetId = x.TargetId,
                     TargetName = x.TargetName,
                     TargetHpTotal = x.TargetHpTotal,
+                    TargetHpRemaining = x.TargetHpRemaining,
                     SessionStart = x.SessionStart,
                     SessionEnd = x.SessionEnd,
                     State = x.State,
@@ -271,7 +308,8 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
             DateTime? dateFrom,
             DateTime? dateTo,
             string? bossNameContains,
-            IReadOnlySet<Guid>? excludeSessionIds)
+            IReadOnlySet<Guid>? excludeSessionIds,
+            bool onlyClears = false)
         {
             var query = db.Sessions.AsNoTracking().AsQueryable();
 
@@ -289,6 +327,11 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
 
             if (excludeSessionIds is { Count: > 0 })
                 query = query.Where(x => !excludeSessionIds.Contains(x.SessionId));
+
+            // Same rule as HistorySessionListItem.IsClear.
+            if (onlyClears)
+                query = query.Where(x => x.TargetHpTotal > 0
+                    && (x.TargetHpRemaining == 0 || x.TotalDamage >= x.TargetHpTotal * HistorySessionListItem.KillDamageShare));
 
             return query;
         }
@@ -400,6 +443,7 @@ namespace AionDpsMeter.Services.Services.Session.Persistence
             existing.TargetId = entity.TargetId;
             existing.TargetName = entity.TargetName;
             existing.TargetHpTotal = entity.TargetHpTotal;
+            existing.TargetHpRemaining = entity.TargetHpRemaining;
             existing.SessionStart = entity.SessionStart;
             existing.SessionEnd = entity.SessionEnd;
             existing.State = entity.State;

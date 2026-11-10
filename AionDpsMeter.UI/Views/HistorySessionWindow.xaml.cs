@@ -16,6 +16,41 @@ namespace AionDpsMeter.UI
         {
             InitializeComponent();
             _settingsService = settingsService;
+            DataContextChanged += (_, _) => FitHeightToPlayers();
+        }
+
+        // Rough per-row height, only used if measuring fails.
+        private const double FallbackChromeHeight = 120;
+        private const double FallbackRowHeight = 44;
+
+        /// <summary>
+        /// Tall enough for every player (the list doesn't scroll), so a full raid fits and a duo isn't
+        /// mostly empty. Done before the window is shown, since the hover preview places it by its size.
+        /// </summary>
+        private void FitHeightToPlayers()
+        {
+            if (DataContext is not HistorySessionViewModel session || Content is not FrameworkElement root) return;
+
+            // Set here rather than bound, so the rows exist for the measure below.
+            PlayerList.ItemsSource = session.Players;
+
+            double height;
+            try
+            {
+                root.Measure(new Size(Width, double.PositiveInfinity));
+                height = root.DesiredSize.Height;
+            }
+            catch (Exception)
+            {
+                height = 0;
+            }
+            // Measuring a window that isn't shown yet should work; if it comes back empty, estimate.
+            if (height < FallbackChromeHeight)
+                height = FallbackChromeHeight + session.Players.Count * FallbackRowHeight;
+
+            var wa = System.Windows.SystemParameters.WorkArea;
+            MinHeight = 0;
+            Height = Math.Min(Math.Ceiling(height), wa.Height);
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -32,7 +67,7 @@ namespace AionDpsMeter.UI
                 el.Tag is HistoryPlayerViewModel player &&
                 DataContext is HistorySessionViewModel session)
             {
-                _preview?.Hide();
+                _preview?.HideNow();
                 var detailsWindow = new PlayerDetailsWindow
                 {
                     DataContext = PlayerDetailsViewModel.FromSnapshot(player, _settingsService, session.TargetName),

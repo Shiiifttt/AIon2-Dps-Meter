@@ -7,8 +7,8 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=h:HistorySessionViewModel}"
         Title="Session Stats"
-        Height="340" Width="800"
-        MinHeight="340" MinWidth="800"
+        Height="340" Width="900"
+        MinHeight="200" MinWidth="900"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -178,8 +178,7 @@
             </Border>
 
             <!-- Player list -->
-            <ListBox Grid.Row="2"
-                     ItemsSource="{Binding Players}"
+            <ListBox x:Name="PlayerList" Grid.Row="2"
                      Background="Transparent"
                      BorderThickness="0"
                      VirtualizingPanel.IsVirtualizing="True"

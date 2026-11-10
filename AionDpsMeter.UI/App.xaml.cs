@@ -42,6 +42,11 @@ namespace AionDpsMeter.UI
                 return;
             }
 
+            // Settings, history and the other user files are opened by relative path. Started by Windows at
+            // sign-in (Start with Windows) the working folder is System32, so always work from the exe's folder.
+            Environment.CurrentDirectory = AppContext.BaseDirectory;
+            StartupRegistration.RefreshPath();
+
             AppHost = Host.CreateDefaultBuilder()
                 .UseSerilog((context, services, loggerConfiguration) =>
                 {

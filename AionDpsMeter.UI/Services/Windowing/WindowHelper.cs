@@ -170,6 +170,16 @@ namespace AionDpsMeter.UI.Services.Windowing
         /// <summary>Hides just the meter window to the tray (the meter's own hide button).</summary>
         public void HideMeter() => MainWindow.Hide();
 
+        /// <summary>Raised by <see cref="ResetMeter"/>; the meter view resets itself (it also clears its header).</summary>
+        public event Action? ResetMeterRequested;
+
+        /// <summary>Same as the meter's reset button: saves the current fight to history and clears the meter.</summary>
+        public void ResetMeter()
+        {
+            if (ResetMeterRequested is { } handler) handler();
+            else sessionManager.ResetMeter();
+        }
+
         private void HideAllToTray()
         {
             _windowsHiddenWithMeter = Application.Current.Windows.OfType<Window>()

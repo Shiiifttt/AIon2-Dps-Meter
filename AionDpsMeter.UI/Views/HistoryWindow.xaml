@@ -210,6 +210,39 @@
         </Style>
 
         <Style x:Key="HistoryFilterButtonStyle" TargetType="Button" BasedOn="{StaticResource HistorySubtleButtonStyle}"/>
+
+        <Style x:Key="HistoryCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Border x:Name="Box" Width="13" Height="13" CornerRadius="3"
+                                    Background="{StaticResource SecondaryBackgroundBrush}"
+                                    BorderBrush="#3B4450" BorderThickness="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="Tick" Text="✓" FontSize="10" FontWeight="Bold" Foreground="#0D1117"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0" Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Tick" Property="Visibility" Value="Visible"/>
+                                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Border Background="{StaticResource PrimaryBackgroundBrush}"
@@ -303,11 +336,17 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Column="0"
-                               Text="{Binding SummaryText}"
-                               FontSize="10"
-                               Foreground="{StaticResource SecondaryTextBrush}"
-                               VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding SummaryText}"
+                                   FontSize="10"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center"/>
+                        <CheckBox IsChecked="{Binding HideNonClears, Mode=TwoWay}"
+                                  Content="Hide non-clears"
+                                  ToolTip="Hide fights where the boss didn't die (fights in progress stay listed)"
+                                  Style="{StaticResource HistoryCheckBoxStyle}"
+                                  Margin="16,0,0,0"/>
+                    </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Content="◀"
@@ -348,9 +387,9 @@
                     <TextBlock Grid.Column="0" Text=""      FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="1" Text="Mob"   FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="4,0,0,0"/>
                     <TextBlock Grid.Column="2" Text="Date"  FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="3" Text="Time"  FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" ToolTip="Fight length, and for kills how it compares with the fastest kill of that boss"/>
+                    <TextBlock Grid.Column="3" Text="Time"  FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" ToolTip="Fight length; for kills how it compares with the fastest kill of that boss, for non-clears the boss HP left (red)"/>
                     <TextBlock Grid.Column="4" Text="Damage" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="5" Text="vs PB" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" Margin="0,0,10,0" VerticalAlignment="Center" ToolTip="Your DPS compared with your best on that boss"/>
+                    <TextBlock Grid.Column="5" Text="vs PB" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" Margin="0,0,10,0" VerticalAlignment="Center" ToolTip="Your DPS compared with your best clear of that boss (until it has been cleared: your attempt that got it lowest)"/>
                     <TextBlock Grid.Column="6" Text="Players" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
@@ -447,12 +486,28 @@
                                                FontSize="10" FontFamily="Consolas"
                                                Foreground="{StaticResource SecondaryTextBrush}"
                                                VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding KillTimeDisplay}"
-                                               ToolTip="{Binding KillTimeTooltip}"
-                                               FontSize="10" FontWeight="Bold" FontFamily="Consolas"
-                                               Foreground="{Binding KillTimeColor, Converter={StaticResource StringToBrushConverter}}"
-                                               Margin="6,0,0,0"
-                                               VerticalAlignment="Center"/>
+                                    <!-- Wipes: boss HP left, in a red pill -->
+                                    <Border Margin="6,0,0,0" CornerRadius="3" VerticalAlignment="Center"
+                                            ToolTip="{Binding KillTimeTooltip}">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="Padding" Value="0"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ShowNonClearPill}" Value="True">
+                                                        <Setter Property="Background" Value="#33F06A6A"/>
+                                                        <Setter Property="BorderBrush" Value="#88F06A6A"/>
+                                                        <Setter Property="BorderThickness" Value="1"/>
+                                                        <Setter Property="Padding" Value="4,0"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding KillTimeDisplay}"
+                                                   FontSize="10" FontWeight="Bold" FontFamily="Consolas"
+                                                   Foreground="{Binding KillTimeColor, Converter={StaticResource StringToBrushConverter}}"
+                                                   VerticalAlignment="Center"/>
+                                    </Border>
                                 </StackPanel>
 
                                 <!-- Total damage -->

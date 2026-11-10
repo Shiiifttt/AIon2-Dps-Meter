@@ -60,7 +60,7 @@ namespace AionDpsMeter.UI
         {
             if (sender is FrameworkElement el && el.Tag is HistoryEntryViewModel entry)
             {
-                _preview.Hide();
+                _preview.HideNow();
                 var session = GetSessionViewModel(entry.SessionId);
                 if (session is null) return;
 
@@ -109,7 +109,7 @@ namespace AionDpsMeter.UI
             if (sender is not FrameworkElement { DataContext: HistoryEntryViewModel entry } || !HasBestToCompare(entry)) return;
 
             e.Handled = true;
-            _preview.Hide();
+            _preview.HideNow();
             var windows = CreateComparisonWindows(GetSessionViewModel(entry.SessionId), GetSessionViewModel(entry.BestSessionId!.Value), entry.TargetName);
             if (windows is null) return;
 

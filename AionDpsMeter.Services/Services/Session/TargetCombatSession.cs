@@ -30,6 +30,10 @@ namespace AionDpsMeter.Services.Services.Session
         private readonly BuffEventManager buffEventManager = new();
 
         private long LastKnownTargetHp { get; set; } = -1;
+        private bool sawTargetHp;
+
+        /// <summary>Boss HP when the last hit landed; null if no HP update was seen (HP defaults to 0).</summary>
+        public long? TargetHpAtLastHit => sawTargetHp && LastKnownTargetHp >= 0 ? LastKnownTargetHp : null;
         private readonly IAppSettingsService settingsService;
 
         // Hits not yet matched to a stagger gauge update.
@@ -72,6 +76,7 @@ namespace AionDpsMeter.Services.Services.Session
 
             if (damage.DateTime > LastHitTime)
                 LastHitTime = damage.DateTime;
+            if (TargetInfo.HpCurrent > 0) sawTargetHp = true;
             LastKnownTargetHp = TargetInfo.HpCurrent;
         }
 

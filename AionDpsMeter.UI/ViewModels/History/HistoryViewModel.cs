@@ -35,6 +35,13 @@ namespace AionDpsMeter.UI.ViewModels.History
         [ObservableProperty]
         private string _summaryText = "Total 0, shown 0";
 
+        // Hide fights where the boss didn't die (remembered between sessions).
+        [ObservableProperty]
+        private bool _hideNonClears;
+
+        private readonly IAppSettingsService _settingsService;
+        private bool _loaded;
+
         public bool HasSessions => Sessions.Count > 0;
         public bool CanGoPrev => CurrentPage > 1;
         public bool CanGoNext => CurrentPage * PageSize < TotalCount;
@@ -42,11 +49,21 @@ namespace AionDpsMeter.UI.ViewModels.History
         public HistoryViewModel(CombatSessionManager sessionManager, IAppSettingsService settingsService)
         {
             _sessionManager = sessionManager;
+            _settingsService = settingsService;
+            HideNonClears = settingsService.HistoryHideNonClears;
 
             var now = DateTime.Now;
             DateFrom = now.AddDays(-1).Date;
             DateTo = now.AddMinutes(1);
 
+            _loaded = true;
+            LoadPage(1);
+        }
+
+        partial void OnHideNonClearsChanged(bool value)
+        {
+            if (!_loaded) return;
+            _settingsService.HistoryHideNonClears = value;
             LoadPage(1);
         }
 
@@ -99,6 +116,7 @@ namespace AionDpsMeter.UI.ViewModels.History
                 DateFrom = DateFrom,
                 DateTo = NormalizeDateTo(DateTo),
                 BossNameContains = string.IsNullOrWhiteSpace(BossName) ? null : BossName.Trim(),
+                OnlyClears = HideNonClears,
                 PageNumber = Math.Max(1, page),
                 PageSize = PageSize,
             };

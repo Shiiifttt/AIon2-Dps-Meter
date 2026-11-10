@@ -17,6 +17,7 @@ namespace AionDpsMeter.Services.Services.Settings
             _data = Load();
             _data.HistoryRetantionPeriod = Math.Clamp(_data.HistoryRetantionPeriod, 1, 9999);
             _data.WindowBoundsByKey ??= [];
+            _data.MeterSizeByLayout ??= [];
         }
 
         public OverlaySettings BufOverlaySettings
@@ -312,6 +313,36 @@ namespace AionDpsMeter.Services.Services.Settings
                     if (changed) Save();
                 }
                 if (changed) SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        public bool HistoryHideNonClears
+        {
+            get { lock (_lock) return _data.HistoryHideNonClears; }
+            // History-window state only; nothing else needs to hear about it.
+            set { lock (_lock) { if (_data.HistoryHideNonClears == value) return; _data.HistoryHideNonClears = value; Save(); } }
+        }
+
+        public bool TryGetMeterSize(int uiStyle, out double width, out double height)
+        {
+            lock (_lock)
+            {
+                if (_data.MeterSizeByLayout.TryGetValue(uiStyle.ToString(), out var size) && size.Length == 2 && size[0] > 0 && size[1] > 0)
+                {
+                    (width, height) = (size[0], size[1]);
+                    return true;
+                }
+                (width, height) = (0, 0);
+                return false;
+            }
+        }
+
+        public void SetMeterSize(int uiStyle, double width, double height)
+        {
+            lock (_lock)
+            {
+                _data.MeterSizeByLayout[uiStyle.ToString()] = [width, height];
+                Save();
             }
         }
 
@@ -675,6 +706,13 @@ namespace AionDpsMeter.Services.Services.Settings
 
             [JsonPropertyName("showPetAlerts")]
             public bool ShowPetAlerts { get; set; } = true;
+
+            [JsonPropertyName("historyHideNonClears")]
+            public bool HistoryHideNonClears { get; set; }
+
+            // Meter width/height per layout (UiStyle), so switching layouts brings back each one's size.
+            [JsonPropertyName("meterSizeByLayout")]
+            public Dictionary<string, double[]> MeterSizeByLayout { get; set; } = [];
 
             [JsonPropertyName("playerRowScale")]
             public double PlayerRowScale { get; set; } = 1.0;

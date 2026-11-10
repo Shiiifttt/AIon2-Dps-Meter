@@ -94,7 +94,8 @@ namespace AionDpsMeter.Services.Services.Session
                     query.DateFrom,
                     query.DateTo,
                     query.BossNameContains,
-                    runningIds);
+                    runningIds,
+                    query.OnlyClears);
 
                 int totalCount = running.Count + persistedCount;
 
@@ -112,7 +113,8 @@ namespace AionDpsMeter.Services.Services.Session
                         query.BossNameContains,
                         persistedSkip,
                         persistedTake,
-                        runningIds);
+                        runningIds,
+                        query.OnlyClears);
 
                     pageItems.AddRange(persistedPage);
                 }
@@ -501,7 +503,7 @@ namespace AionDpsMeter.Services.Services.Session
         {
             if (bossRecords.TryGetValue(targetName, out var records)) return records;
 
-            records = new BossRecords();
+            records = new BossRecords(GameDataProvider.Instance.Mobs.DummyNames.Contains(targetName));
             try
             {
                 foreach (var (sessionId, stats) in historyStore.GetPlayerStatsForTarget(targetName))
@@ -550,6 +552,7 @@ namespace AionDpsMeter.Services.Services.Session
                 TargetId = session.TargetId,
                 TargetName = session.TargetInfo.Name,
                 TargetHpTotal = session.TargetInfo.HpTotal,
+                TargetHpRemaining = session.TargetHpAtLastHit,
                 SessionStart = session.SessionStart,
                 SessionEnd = session.LastHitTime,
                 State = session.State,

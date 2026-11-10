@@ -25,6 +25,14 @@ namespace AionDpsMeter.UI.Pages
         private UpdateCheckResult? _lastUpdateCheck;
         private bool _confirmDummyCleanup;
         private string? _dummyCleanupResult;
+        private bool _startWithWindows;
+
+        // The registry entry is the setting (the tray menu can change it too), so read it back after writing.
+        private void SetStartWithWindows(bool enabled)
+        {
+            AionDpsMeter.UI.Services.StartupRegistration.SetEnabled(enabled);
+            _startWithWindows = AionDpsMeter.UI.Services.StartupRegistration.IsEnabled;
+        }
 
        
         private const int MaxTrackedBuffSkills = 10;
@@ -65,6 +73,7 @@ namespace AionDpsMeter.UI.Pages
         {
             _windowOpacityPercent = (int)Math.Round(settings.WindowOpacity * 100);
             _playerRowScale = settings.PlayerRowScale;
+            _startWithWindows = AionDpsMeter.UI.Services.StartupRegistration.IsEnabled;
 
             var asmVersion = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version;
             if (asmVersion is not null)

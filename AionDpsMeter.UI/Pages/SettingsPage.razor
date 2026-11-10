@@ -70,6 +70,12 @@
 
             <div class="settings-section-label settings-section-label--spaced">WINDOW</div>
 
+            <SettingRow Title="Start with Windows" Description="Open the meter (in the tray) when you sign in to Windows. Also in the tray menu">
+                <ValueSlot>
+                    <ToggleSwitch Checked="_startWithWindows" CheckedChanged="SetStartWithWindows" />
+                </ValueSlot>
+            </SettingRow>
+
             <SettingRow Title="Click-Through Meter" Description="@ClickThroughDescription">
                 <ValueSlot>
                     <ToggleSwitch Checked="settings.MainClickThrough" CheckedChanged="v => { settings.MainClickThrough = v; }" />

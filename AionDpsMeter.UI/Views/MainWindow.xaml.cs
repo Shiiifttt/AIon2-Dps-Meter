@@ -18,6 +18,8 @@ namespace AionDpsMeter.UI.Views
         private DispatcherTimer? _saveBoundsTimer;
         private readonly DispatcherTimer _hoverWatchTimer;
         private bool _cursorWasOver;
+        // The layout the window is sized for; each layout remembers its own size.
+        private int _layoutStyle;
         private GlobalHotkey? _globalHotkey;
         private readonly IWindowManagerService windowManager;
         private readonly WindowHelper windowHelper;
@@ -33,6 +35,7 @@ namespace AionDpsMeter.UI.Views
             _saveBoundsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(5000) };
             _saveBoundsTimer.Tick += (_, _) => { _saveBoundsTimer.Stop(); SaveWindowBounds(); };
 
+            _layoutStyle = settingsService.UiStyle;
             ApplyLayoutMinSize();
             RestoreWindowBounds();
 
@@ -41,6 +44,7 @@ namespace AionDpsMeter.UI.Views
             settingsService.SettingsChanged += (_, _) =>
                 Dispatcher.InvokeAsync(() =>
                 {
+                    ApplyLayoutSwitch();
                     ApplyLayoutMinSize();
                     MainBorder.Opacity = settingsService.WindowOpacity;
                     RegisterToggleHotkey();
@@ -116,6 +120,29 @@ namespace AionDpsMeter.UI.Views
             };
         }
 
+        // Layouts need very different sizes (Ultra Compact is a strip, Standard a panel), so keep the size
+        // the meter had in the layout being left, and bring back the one it had in the new layout.
+        // A layout not used before keeps the current size. The top-left corner stays put.
+        private void ApplyLayoutSwitch()
+        {
+            int style = settingsService.UiStyle;
+            if (style == _layoutStyle) return;
+
+            if (WindowState == WindowState.Normal)
+                settingsService.SetMeterSize(_layoutStyle, Width, Height);
+            _layoutStyle = style;
+            ApplyLayoutMinSize();
+
+            if (WindowState != WindowState.Normal || !settingsService.TryGetMeterSize(style, out var width, out var height))
+                return;
+
+            Width = Math.Max(MinWidth, width);
+            Height = Math.Max(MinHeight, height);
+            var wa = ScreenHelper.GetWorkingAreaForPoint(Left, Top);
+            Left = Math.Max(wa.Left, Math.Min(Left, wa.Right - Width));
+            Top = Math.Max(wa.Top, Math.Min(Top, wa.Bottom - Height));
+        }
+
         // ShowInTaskbar="False" keeps the meter off the taskbar; the tool-window style also keeps it
         // out of Alt+Tab. It lives in the tray instead (TrayIcon).
         private void HideFromAltTab()
@@ -131,6 +158,8 @@ namespace AionDpsMeter.UI.Views
             var top    = settingsService.WindowTop;
             var width  = settingsService.WindowWidth;
             var height = settingsService.WindowHeight;
+            if (settingsService.TryGetMeterSize(_layoutStyle, out var layoutWidth, out var layoutHeight))
+                (width, height) = (layoutWidth, layoutHeight);
 
             if (!left.HasValue || !top.HasValue)
                 return;
@@ -158,6 +187,7 @@ namespace AionDpsMeter.UI.Views
             settingsService.WindowTop    = Top;
             settingsService.WindowWidth  = Width;
             settingsService.WindowHeight = Height;
+            settingsService.SetMeterSize(_layoutStyle, Width, Height);
         }
 
 
