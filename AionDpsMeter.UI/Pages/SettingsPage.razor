@@ -145,6 +145,12 @@
                 </ValueSlot>
             </SettingRow>
 
+            <SettingRow Title="Sync Popup" Description="A small card when the meter syncs with the game, saying who it thinks you are - or what to do when it can't see the game. Fades on its own. Drag it where you want it while Settings is open">
+                <ValueSlot>
+                    <ToggleSwitch Checked="settings.ShowSyncPopup" CheckedChanged="v => { settings.ShowSyncPopup = v; }" />
+                </ValueSlot>
+            </SettingRow>
+
             <SettingRow Title="Track Pet Collection" Description="Counts pet souls and ranks per character; open it from the tray menu. Log into your character after turning this on to load your collection">
                 <ValueSlot>
                     <ToggleSwitch Checked="settings.TrackPetCollection" CheckedChanged="v => { settings.TrackPetCollection = v; }" />

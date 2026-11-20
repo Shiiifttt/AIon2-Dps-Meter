@@ -4,10 +4,10 @@
     <div class="uc-meter">
         <CompactMeterHeader ViewModel="@ViewModel" />
 
-        <div class="uc-players">
+        <div class="uc-players" data-meter-list="3">
             @foreach (var player in ViewModel.Players)
             {
-                <div class="uc-row @ViewModel.GetIsUserClass(player)" title="@player.TotalDamageFormatted" @onclick="() => ViewModel.OpenPlayerDetails(player)">
+                <div data-meter-row class="uc-row @ViewModel.GetIsUserClass(player)" title="@player.TotalDamageFormatted" @onclick="() => ViewModel.OpenPlayerDetails(player)">
                     <div class="uc-bar @ViewModel.GetPlayerRowClass(player)" style="width:@($"{ViewModel.ClampPercent(player.EffectivePercentage).ToString("0.##", CultureInfo.InvariantCulture)}%")"></div>
                     <div class="uc-data">
                         <div class="uc-icon" style="background-image: url('/images/classes/@(player.ClassId).png');"></div>

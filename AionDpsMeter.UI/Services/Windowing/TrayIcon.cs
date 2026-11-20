@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using AionDpsMeter.Services.Services.Settings;
+using AionDpsMeter.Services.Services.Sync;
 
 namespace AionDpsMeter.UI.Services.Windowing
 {
@@ -20,10 +21,14 @@ namespace AionDpsMeter.UI.Services.Windowing
         private readonly ToolStripMenuItem _petCollectionItem;
         private readonly ToolStripMenuItem _startupItem;
 
-        public TrayIcon(WindowHelper windowHelper, IAppSettingsService settingsService, IWindowManagerService windowManager)
+        private const string AppName = "AION2 DPS Meter";
+        private readonly MeterSyncMonitor _sync;
+
+        public TrayIcon(WindowHelper windowHelper, IAppSettingsService settingsService, IWindowManagerService windowManager, MeterSyncMonitor sync)
         {
             this.windowHelper = windowHelper;
             this.settingsService = settingsService;
+            _sync = sync;
 
             _showHideItem = new ToolStripMenuItem("Hide meter", null, (_, _) => windowHelper.ToggleMeterVisibility());
             _showHideItem.Font = new Font(_showHideItem.Font, System.Drawing.FontStyle.Bold);
@@ -45,6 +50,10 @@ namespace AionDpsMeter.UI.Services.Windowing
             menu.Items.Add(_petCollectionItem);
             menu.Items.Add(new ToolStripMenuItem("Settings", null, (_, _) => WithMeterShown(windowHelper.OpenSettings)));
             menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(new ToolStripMenuItem("Re-sync with game", null, (_, _) => sync.Resync())
+            {
+                ToolTipText = "Drops the current game connection and looks for it again (also finds a VPN connected after the meter started)",
+            });
             menu.Items.Add(_startupItem);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Exit", null, (_, _) => windowManager.CloseApplication()));
@@ -53,10 +62,13 @@ namespace AionDpsMeter.UI.Services.Windowing
             _notifyIcon = new NotifyIcon
             {
                 Icon = LoadAppIcon(),
-                Text = "AION2 DPS Meter",
+                Text = AppName,
                 ContextMenuStrip = menu,
                 Visible = true
             };
+            UpdateTooltip();
+            // Raised on capture / packet threads.
+            sync.SummaryChanged += OnSyncSummaryChanged;
             _notifyIcon.MouseClick += (_, e) =>
             {
                 if (e.Button == MouseButtons.Left)
@@ -64,8 +76,20 @@ namespace AionDpsMeter.UI.Services.Windowing
             };
         }
 
+        private void OnSyncSummaryChanged()
+            => System.Windows.Application.Current?.Dispatcher.BeginInvoke(UpdateTooltip);
+
+        // Hovering the tray icon shows whether the meter follows the game.
+        private void UpdateTooltip()
+        {
+            var text = $"{AppName}\n{_sync.Summary}";
+            // NotifyIcon.Text is limited to 127 characters.
+            _notifyIcon.Text = text.Length <= 127 ? text : text[..126] + "…";
+        }
+
         private void RefreshMenu()
         {
+            UpdateTooltip();
             _showHideItem.Text = windowHelper.IsMeterVisible ? "Hide meter" : "Show meter";
             _clickThroughItem.Checked = settingsService.MainClickThrough;
             _petCollectionItem.Visible = settingsService.TrackPetCollection;
@@ -96,6 +120,7 @@ namespace AionDpsMeter.UI.Services.Windowing
 
         public void Dispose()
         {
+            _sync.SummaryChanged -= OnSyncSummaryChanged;
             // Without this the icon lingers in the tray until the user hovers over it.
             _notifyIcon.Visible = false;
             _notifyIcon.ContextMenuStrip?.Dispose();

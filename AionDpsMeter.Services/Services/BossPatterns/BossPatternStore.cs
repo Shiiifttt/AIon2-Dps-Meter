@@ -46,6 +46,25 @@ namespace AionDpsMeter.Services.Services.BossPatterns
             => (defaults.GetValueOrDefault(mobCode)?.Keys ?? Enumerable.Empty<int>())
                 .Union(learned.GetValueOrDefault(mobCode)?.Keys ?? Enumerable.Empty<int>());
 
+        /// <summary>
+        /// The one mob code that has used this skill (shipped table or learned here), or null when none
+        /// or several have. Difficulty variants of a boss share skills, so those stay unresolved.
+        /// </summary>
+        public int? OnlyBossWithSkill(int skillCode)
+        {
+            int? found = null;
+            foreach (var table in new[] { defaults, learned })
+            {
+                foreach (var (mobCode, skills) in table)
+                {
+                    if (!skills.ContainsKey(skillCode)) continue;
+                    if (found is null) found = mobCode;
+                    else if (found != mobCode) return null;
+                }
+            }
+            return found;
+        }
+
         public void AddCast(int mobCode, int skillCode, int castMs)
         {
             var s = Learned(mobCode, skillCode);

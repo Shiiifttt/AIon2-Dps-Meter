@@ -29,5 +29,27 @@
 <body>
     <div id="app"></div>
     <script src="_framework/blazor.webview.js"></script>
+    <script>
+        // Sizes of the current meter layout, so the window can be resized to keep the same number of
+        // bars when the layout changes. header/bottom: space above/below the player list; pitch: distance
+        // from one row to the next (0 with fewer than two rows); rowHeight: height of the first row.
+        window.aionMeter = {
+            measure: function () {
+                var list = document.querySelector('[data-meter-list]');
+                if (!list) return null;
+                var listRect = list.getBoundingClientRect();
+                var rows = list.querySelectorAll('[data-meter-row]');
+                var first = rows.length > 0 ? rows[0].getBoundingClientRect() : null;
+                var pitch = rows.length > 1 ? rows[1].getBoundingClientRect().top - first.top : 0;
+                return {
+                    layout: parseInt(list.getAttribute('data-meter-list'), 10),
+                    header: listRect.top,
+                    bottom: Math.max(0, window.innerHeight - listRect.bottom),
+                    pitch: pitch,
+                    rowHeight: first ? first.height : 0
+                };
+            }
+        };
+    </script>
 </body>
 </html>

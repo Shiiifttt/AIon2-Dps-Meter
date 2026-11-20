@@ -11,13 +11,16 @@ namespace AionDpsMeter.Services.PacketCapture
     ///
     /// Detection flow:
     ///   1. All eligible adapters open simultaneously in detection mode.
-    ///   2. Heartbeat hits are tallied per adapter+port.
+    ///   2. Game keepalives (<see cref="KeepAliveSignature"/>: header plus a current server timestamp)
+    ///      are tallied per adapter+port.
     ///   3. When any adapter+port crosses DetectionThreshold a 2-second grace
     ///      window starts so that VPN loopback traffic has time to appear.
     ///   4. After the window, priority rules pick the winning adapter:
     ///      loopback > physical. The winner's device is locked; all others close.
-    ///   5. A watchdog resets everything back to detection if no heartbeat is
+    ///   5. A watchdog resets everything back to detection if no keepalive is
     ///      seen on the locked adapter for WatchdogTimeoutMs.
+    ///   6. While searching, adapters that appeared after start (a VPN connecting
+    ///      after the meter started with Windows) are picked up every AdapterRefreshMs.
     /// </summary>
     public sealed class CaptureDevice : IPacketCaptureDevice
     {
@@ -25,9 +28,10 @@ namespace AionDpsMeter.Services.PacketCapture
         private const int ReadTimeoutMs = 100;
         private const int DetectionThreshold = 5;
         private const int GraceWindowMs = 2000;
-        private const int WatchdogTimeoutMs = 60_000;
-
-        private static readonly byte[] HeartbeatPattern = { 0x0E, 0x00, 0x36 };
+        // Loading screens can pause keepalives for a minute or more (up to ~170 s seen in a 3 h log);
+        // a reset there costs little, as the next keepalives lock again within a couple of seconds.
+        private const int WatchdogTimeoutMs = 90_000;
+        private const int AdapterRefreshMs = 30_000;
         // ────────────────────────────────────────────────────────────────────────
 
         private readonly List<AdapterContext> allAdapters = new();
@@ -52,7 +56,8 @@ namespace AionDpsMeter.Services.PacketCapture
         private readonly CancellationTokenSource cts = new();
 
         private Timer? watchdogTimer;
-        private volatile int watchdogHeartbeatsSinceCheck;   // reset on each heartbeat hit
+        private volatile int watchdogHeartbeatsSinceCheck;   // keepalives seen on the locked flow since the last check
+        private Timer? adapterRefreshTimer;
 
         private volatile bool isCapturing;
         private volatile int appDroppedPackets;
@@ -62,10 +67,14 @@ namespace AionDpsMeter.Services.PacketCapture
         private readonly ILogger<CaptureDevice> logger;
         private readonly TcpStreamBuffer tcpStreamBuffer;
 
+        private volatile CaptureStatus status = new(CaptureState.Searching);
+
         public bool IsCapturing => isCapturing;
         public string? DeviceName => lockedAdapter?.Device.Name;
+        public CaptureStatus Status => status;
+        public event Action<CaptureStatus>? StatusChanged;
 
-      
+
         public CaptureDevice(
             ILogger<CaptureDevice> logger,
             TcpStreamBuffer tcpStreamBuffer)
@@ -78,17 +87,59 @@ namespace AionDpsMeter.Services.PacketCapture
 
         public void DiscoverAdapters()
         {
-            foreach (var dev in CaptureDeviceList.Instance)
+            lock (detectionLock)
             {
-                var kind = ClassifyAdapter(dev);
-                if (kind == AdapterKind.Skip) continue;
+                foreach (var dev in CaptureDeviceList.Instance)
+                {
+                    var kind = ClassifyAdapter(dev);
+                    if (kind == AdapterKind.Skip) continue;
+                    if (allAdapters.Any(a => a.Device.Name == dev.Name)) continue;
 
-                allAdapters.Add(new AdapterContext(dev, kind));
-                logger.LogDebug($"[DISCOVER] {kind,-8} adapter: {dev.Name} — {dev.Description}");
+                    allAdapters.Add(new AdapterContext(dev, kind));
+                    logger.LogDebug($"[DISCOVER] {kind,-8} adapter: {dev.Name} — {dev.Description}");
+                }
+
+                if (allAdapters.Count == 0)
+                    logger.LogWarning("[DISCOVER] No eligible adapters found yet; will look again while searching.");
+            }
+        }
+
+        /// <summary>Adds adapters that appeared since start and opens them if we're searching. Returns how many.</summary>
+        private int RefreshAdapters()
+        {
+            CaptureDeviceList list;
+            try
+            {
+                list = CaptureDeviceList.New();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning($"[DISCOVER] Could not list adapters: {ex.Message}");
+                return 0;
             }
 
-            if (allAdapters.Count == 0)
-                logger.LogWarning("[DISCOVER] No eligible adapters found.");
+            int added = 0;
+            lock (detectionLock)
+            {
+                foreach (var dev in list)
+                {
+                    var kind = ClassifyAdapter(dev);
+                    if (kind == AdapterKind.Skip) continue;
+                    if (allAdapters.Any(a => a.Device.Name == dev.Name)) continue;
+
+                    var ctx = new AdapterContext(dev, kind);
+                    allAdapters.Add(ctx);
+                    added++;
+                    logger.LogInformation($"[DISCOVER] New {kind} adapter: {dev.Name} — {dev.Description}");
+                    if (isCapturing && !isLocked) OpenAdapterForDetection(ctx);
+                }
+            }
+            return added;
+        }
+
+        private AdapterContext[] AdapterSnapshot()
+        {
+            lock (detectionLock) return allAdapters.ToArray();
         }
 
         private static AdapterKind ClassifyAdapter(ICaptureDevice dev)
@@ -116,8 +167,6 @@ namespace AionDpsMeter.Services.PacketCapture
         public void StartCapture()
         {
             if (isCapturing) return;
-            if (allAdapters.Count == 0)
-                throw new InvalidOperationException("No eligible network adapters found.");
 
             ResetAllState();
 
@@ -129,15 +178,18 @@ namespace AionDpsMeter.Services.PacketCapture
             };
             processingThread.Start();
 
-            foreach (var ctx in allAdapters)
+            isCapturing = true;
+            var adapters = AdapterSnapshot();
+            foreach (var ctx in adapters)
                 OpenAdapterForDetection(ctx);
 
             statsTimer = new Timer(LogDriverStats, null, 5_000, 5_000);
-            isCapturing = true;
+            adapterRefreshTimer = new Timer(_ => { if (isCapturing && !isLocked) RefreshAdapters(); },
+                null, AdapterRefreshMs, AdapterRefreshMs);
 
             logger.LogInformation(
-                $"[CAPTURE] Started on {allAdapters.Count} adapter(s). " +
-                $"Listening for heartbeat pattern on all. Loopback preferred.");
+                $"[CAPTURE] Started on {adapters.Length} adapter(s). " +
+                $"Listening for game keepalives on all. Loopback preferred.");
         }
 
         public void StopCapture()
@@ -148,6 +200,7 @@ namespace AionDpsMeter.Services.PacketCapture
             statsTimer?.Dispose(); statsTimer = null;
             watchdogTimer?.Dispose(); watchdogTimer = null;
             graceWindowTimer?.Dispose(); graceWindowTimer = null;
+            adapterRefreshTimer?.Dispose(); adapterRefreshTimer = null;
 
             CloseAllAdapters();
 
@@ -155,6 +208,14 @@ namespace AionDpsMeter.Services.PacketCapture
             processingThread?.Join(1_000);
 
             logger.LogInformation("[CAPTURE] Stopped.");
+        }
+
+        public void Resync()
+        {
+            if (!isCapturing) return;
+            logger.LogInformation("[CAPTURE] Re-sync requested.");
+            RefreshAdapters();
+            ResetToDetection();
         }
 
         public void Dispose()
@@ -169,7 +230,10 @@ namespace AionDpsMeter.Services.PacketCapture
         {
             try
             {
-                ctx.Device.OnPacketArrival += (s, e) => OnPacketArrival(ctx, e);
+                // SharpPcap drops the handlers on Close(), so attach on every open - but never twice.
+                ctx.Handler ??= (s, e) => OnPacketArrival(ctx, e);
+                ctx.Device.OnPacketArrival -= ctx.Handler;
+                ctx.Device.OnPacketArrival += ctx.Handler;
                 ctx.Device.Open(new DeviceConfiguration
                 {
                     Mode = DeviceModes.None,
@@ -198,19 +262,9 @@ namespace AionDpsMeter.Services.PacketCapture
 
         private void CloseAllAdapters()
         {
-            foreach (var ctx in allAdapters)
+            foreach (var ctx in AdapterSnapshot())
                 CloseAdapter(ctx);
         }
-
-        private void CloseAllExcept(AdapterContext winner)
-        {
-            foreach (var ctx in allAdapters)
-            {
-                if (ctx != winner)
-                    CloseAdapter(ctx);
-            }
-        }
-
 
         private void OnPacketArrival(AdapterContext ctx, SharpPcap.PacketCapture e)
         {
@@ -226,7 +280,7 @@ namespace AionDpsMeter.Services.PacketCapture
                 var pooled = new PooledRawPacket(
                     raw.LinkLayerType, buffer, length,
                     raw.Timeval.Date,
-                    ctx);  
+                    ctx);
 
                 if (!packetQueue.TryAdd(pooled))
                 {
@@ -262,16 +316,81 @@ namespace AionDpsMeter.Services.PacketCapture
             if (!isLocked)
             {
                 HandleDetectionPacket(raw.SourceAdapter!, tcp);
+                KeepForReplay(raw, tcp);
                 return;
             }
+
+            ReplayDetectionBacklog();
 
             if (raw.SourceAdapter != lockedAdapter) return;
             if (tcp.SourcePort != lockedPort) return;
 
-            Interlocked.Increment(ref watchdogHeartbeatsSinceCheck);
+            HandleLockedSegment(tcp, raw.Timestamp);
+        }
+
+        // ── Detection backlog ────────────────────────────────────────────────
+        // Detection takes 2-3 s. Right after a zone change (when a re-lock usually happens) that is
+        // when the monsters' spawn packets arrive, and without them a boss has no name and Boss Only
+        // drops it. So segments from flows that already showed keepalives are kept and replayed once
+        // one of them wins. Only touched on the processing thread, apart from Clear on reset.
+
+        private const int MaxBacklogPerFlow = 4000;
+        private readonly Dictionary<(AdapterContext Adapter, int Port), List<(LinkLayers Link, byte[] Data, DateTime At)>> detectionBacklog = new();
+        private readonly object backlogLock = new();
+
+        private void KeepForReplay(PooledRawPacket raw, TcpPacket tcp)
+        {
+            var adapter = raw.SourceAdapter!;
+            int port = tcp.SourcePort;
+            lock (detectionLock)
+            {
+                if (!detectionHits.TryGetValue(adapter.Device.Name, out var ports) || !ports.ContainsKey(port)) return;
+            }
+
+            var copy = new byte[raw.Length];
+            Array.Copy(raw.Buffer, copy, raw.Length);
+            lock (backlogLock)
+            {
+                if (!detectionBacklog.TryGetValue((adapter, port), out var list))
+                    detectionBacklog[(adapter, port)] = list = [];
+                if (list.Count < MaxBacklogPerFlow) list.Add((raw.LinkLayerType, copy, raw.Timestamp));
+            }
+        }
+
+        private void ReplayDetectionBacklog()
+        {
+            List<(LinkLayers Link, byte[] Data, DateTime At)>? backlog;
+            lock (backlogLock)
+            {
+                if (detectionBacklog.Count == 0) return;
+                var winner = lockedAdapter;
+                backlog = winner is null ? null : detectionBacklog.GetValueOrDefault((winner, lockedPort));
+                detectionBacklog.Clear();
+            }
+            if (backlog is null) return;
+
+            logger.LogInformation($"[CAPTURE] Replaying {backlog.Count} segment(s) seen while detecting.");
+            foreach (var (link, data, at) in backlog)
+            {
+                var tcp = Packet.ParsePacket(link, data).Extract<TcpPacket>();
+                if (tcp is { HasPayloadData: true }) HandleLockedSegment(tcp, at);
+            }
+        }
+
+        private void ClearDetectionBacklog()
+        {
+            lock (backlogLock) detectionBacklog.Clear();
+        }
+
+        private void HandleLockedSegment(TcpPacket tcp, DateTime timestamp)
+        {
+            // Only real keepalives prove the game is still there; any other traffic on the port
+            // (a wrong lock on an HTTPS port) must not keep the watchdog happy.
+            int beats = KeepAliveSignature.Count(tcp.PayloadData, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            if (beats > 0) Interlocked.Add(ref watchdogHeartbeatsSinceCheck, beats);
 
             string streamKey = $"Client:{tcp.DestinationPort}";
-            long arrivedAt = new DateTimeOffset(raw.Timestamp, TimeSpan.Zero)
+            long arrivedAt = new DateTimeOffset(timestamp, TimeSpan.Zero)
                                    .ToUnixTimeMilliseconds();
 
             uint currentSeq = tcp.SequenceNumber;
@@ -325,10 +444,10 @@ namespace AionDpsMeter.Services.PacketCapture
 
         private void HandleDetectionPacket(AdapterContext ctx, TcpPacket tcp)
         {
-            if (tcp.PayloadData.Length < HeartbeatPattern.Length) return;
+            if (tcp.PayloadData.Length < KeepAliveSignature.Length) return;
 
-            ReadOnlySpan<byte> payload = tcp.PayloadData;
-            if (payload.IndexOf(HeartbeatPattern) < 0) return;
+            int found = KeepAliveSignature.Count(tcp.PayloadData, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            if (found == 0) return;
 
             int port = tcp.SourcePort;
 
@@ -343,10 +462,11 @@ namespace AionDpsMeter.Services.PacketCapture
                 }
 
                 portMap.TryGetValue(port, out int hits);
-                portMap[port] = ++hits;
+                hits += found;
+                portMap[port] = hits;
 
                 logger.LogDebug(
-                    $"[DETECT] Pattern on {ctx.Kind} adapter '{ctx.Device.Name}' " +
+                    $"[DETECT] Keepalive on {ctx.Kind} adapter '{ctx.Device.Name}' " +
                     $"port {port} — hits {hits}/{DetectionThreshold}");
 
                 if (hits >= DetectionThreshold && !graceWindowActive)
@@ -368,6 +488,7 @@ namespace AionDpsMeter.Services.PacketCapture
 
         private void OnGraceWindowExpired()
         {
+            CaptureStatus? locked = null;
             lock (detectionLock)
             {
                 if (isLocked) return;
@@ -387,7 +508,9 @@ namespace AionDpsMeter.Services.PacketCapture
                 }
 
                 CommitLock(winnerAdapter, winnerPort);
+                locked = status;
             }
+            if (locked is not null) StatusChanged?.Invoke(locked);
         }
 
         /// <summary>
@@ -452,12 +575,14 @@ namespace AionDpsMeter.Services.PacketCapture
         }
 
 
+        // Called under detectionLock; the caller raises StatusChanged once the lock is released.
         private void CommitLock(AdapterContext winner, int port)
         {
             isLocked = true;
             lockedAdapter = winner;
             lockedPort = port;
             graceWindowActive = false;
+            status = new CaptureStatus(CaptureState.Locked, port, winner.Kind.ToString());
 
             string filter = $"tcp src port {port}";
             try
@@ -473,7 +598,10 @@ namespace AionDpsMeter.Services.PacketCapture
                 logger.LogError($"[CAPTURE] Failed to apply kernel filter: {ex.Message}");
             }
 
-            CloseAllExcept(winner);
+            foreach (var ctx in allAdapters)
+            {
+                if (ctx != winner) CloseAdapter(ctx);
+            }
 
             detectionHits.Clear();
 
@@ -492,12 +620,12 @@ namespace AionDpsMeter.Services.PacketCapture
             int beats = Interlocked.Exchange(ref watchdogHeartbeatsSinceCheck, 0);
             if (beats > 0)
             {
-                logger.LogDebug($"[WATCHDOG] OK — {beats} heartbeat packet(s) in last window.");
+                logger.LogDebug($"[WATCHDOG] OK — {beats} keepalive(s) in last window.");
                 return;
             }
 
             logger.LogWarning(
-                $"[WATCHDOG] No heartbeat for {WatchdogTimeoutMs / 1000}s on " +
+                $"[WATCHDOG] No keepalive for {WatchdogTimeoutMs / 1000}s on " +
                 $"'{lockedAdapter?.Device.Name}' port {lockedPort}. " +
                 $"Resetting to detection mode.");
 
@@ -517,6 +645,7 @@ namespace AionDpsMeter.Services.PacketCapture
                 lockedAdapter = null;
                 lockedPort = 0;
                 detectionHits.Clear();
+                status = new CaptureStatus(CaptureState.Searching);
             }
 
             lock (expectedSeqNumbers)
@@ -524,11 +653,12 @@ namespace AionDpsMeter.Services.PacketCapture
                 expectedSeqNumbers.Clear();
             }
 
-            tcpStreamBuffer.Clear(); 
+            ClearDetectionBacklog();
+            tcpStreamBuffer.Clear();
 
             appDroppedPackets = 0;
 
-            foreach (var ctx in allAdapters)
+            foreach (var ctx in AdapterSnapshot())
             {
                 if (!ctx.IsOpen)
                     OpenAdapterForDetection(ctx);
@@ -540,6 +670,7 @@ namespace AionDpsMeter.Services.PacketCapture
             }
 
             logger.LogInformation("[CAPTURE] Detection mode re-started on all adapters.");
+            StatusChanged?.Invoke(status);
         }
 
         private void ResetAllState()
@@ -551,6 +682,7 @@ namespace AionDpsMeter.Services.PacketCapture
                 lockedAdapter = null;
                 lockedPort = 0;
                 detectionHits.Clear();
+                status = new CaptureStatus(CaptureState.Searching);
             }
 
             lock (expectedSeqNumbers)
@@ -558,6 +690,7 @@ namespace AionDpsMeter.Services.PacketCapture
                 expectedSeqNumbers.Clear();
             }
 
+            ClearDetectionBacklog();
             appDroppedPackets = 0;
             watchdogHeartbeatsSinceCheck = 0;
         }
@@ -566,7 +699,7 @@ namespace AionDpsMeter.Services.PacketCapture
         private void LogDriverStats(object? _)
         {
             if (!isCapturing) return;
-            foreach (var ctx in allAdapters)
+            foreach (var ctx in AdapterSnapshot())
             {
                 if (!ctx.IsOpen) continue;
                 try

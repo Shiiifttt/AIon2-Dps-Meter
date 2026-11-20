@@ -17,7 +17,7 @@ namespace AionDpsMeter.Services.Services.Settings
             _data = Load();
             _data.HistoryRetantionPeriod = Math.Clamp(_data.HistoryRetantionPeriod, 1, 9999);
             _data.WindowBoundsByKey ??= [];
-            _data.MeterSizeByLayout ??= [];
+            _data.MeterLayoutMetrics ??= [];
         }
 
         public OverlaySettings BufOverlaySettings
@@ -323,25 +323,19 @@ namespace AionDpsMeter.Services.Services.Settings
             set { lock (_lock) { if (_data.HistoryHideNonClears == value) return; _data.HistoryHideNonClears = value; Save(); } }
         }
 
-        public bool TryGetMeterSize(int uiStyle, out double width, out double height)
+        public double[]? GetMeterLayoutMetrics(int uiStyle)
         {
             lock (_lock)
             {
-                if (_data.MeterSizeByLayout.TryGetValue(uiStyle.ToString(), out var size) && size.Length == 2 && size[0] > 0 && size[1] > 0)
-                {
-                    (width, height) = (size[0], size[1]);
-                    return true;
-                }
-                (width, height) = (0, 0);
-                return false;
+                return _data.MeterLayoutMetrics.TryGetValue(uiStyle.ToString(), out var metrics) ? metrics : null;
             }
         }
 
-        public void SetMeterSize(int uiStyle, double width, double height)
+        public void SetMeterLayoutMetrics(int uiStyle, double[] metrics)
         {
             lock (_lock)
             {
-                _data.MeterSizeByLayout[uiStyle.ToString()] = [width, height];
+                _data.MeterLayoutMetrics[uiStyle.ToString()] = metrics;
                 Save();
             }
         }
@@ -356,6 +350,22 @@ namespace AionDpsMeter.Services.Services.Settings
                 {
                     changed = _data.ShowPetAlerts != value;
                     _data.ShowPetAlerts = value;
+                    if (changed) Save();
+                }
+                if (changed) SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        public bool ShowSyncPopup
+        {
+            get { lock (_lock) return _data.ShowSyncPopup; }
+            set
+            {
+                bool changed;
+                lock (_lock)
+                {
+                    changed = _data.ShowSyncPopup != value;
+                    _data.ShowSyncPopup = value;
                     if (changed) Save();
                 }
                 if (changed) SettingsChanged?.Invoke(this, EventArgs.Empty);
@@ -707,12 +717,15 @@ namespace AionDpsMeter.Services.Services.Settings
             [JsonPropertyName("showPetAlerts")]
             public bool ShowPetAlerts { get; set; } = true;
 
+            [JsonPropertyName("showSyncPopup")]
+            public bool ShowSyncPopup { get; set; } = true;
+
             [JsonPropertyName("historyHideNonClears")]
             public bool HistoryHideNonClears { get; set; }
 
-            // Meter width/height per layout (UiStyle), so switching layouts brings back each one's size.
-            [JsonPropertyName("meterSizeByLayout")]
-            public Dictionary<string, double[]> MeterSizeByLayout { get; set; } = [];
+            // Measured sizes per layout (UiStyle): header, row pitch, space below the list, row height.
+            [JsonPropertyName("meterLayoutMetrics")]
+            public Dictionary<string, double[]> MeterLayoutMetrics { get; set; } = [];
 
             [JsonPropertyName("playerRowScale")]
             public double PlayerRowScale { get; set; } = 1.0;

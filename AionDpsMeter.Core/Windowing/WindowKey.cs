@@ -12,5 +12,6 @@ namespace AionDpsMeter.Core.Windowing
         SkillCdOverlay,
         PetCollection,
         PetAlert,
+        SyncStatus,
     }
 }

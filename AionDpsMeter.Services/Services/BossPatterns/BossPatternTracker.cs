@@ -36,6 +36,12 @@ namespace AionDpsMeter.Services.Services.BossPatterns
 
         public BossPatternTracker(BossPatternStore store) => this.store = store;
 
+        /// <summary>The one boss known to use this skill, or null when no boss or several do.</summary>
+        public int? OnlyBossWithSkill(int skillCode)
+        {
+            lock (gate) return store.OnlyBossWithSkill(skillCode);
+        }
+
         public void OnPull(int entityId, int mobCode, DateTime at)
         {
             lock (gate)

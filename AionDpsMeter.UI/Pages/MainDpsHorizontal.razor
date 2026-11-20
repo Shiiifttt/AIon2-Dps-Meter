@@ -6,10 +6,10 @@
     <div class="hz-meter">
         <CompactMeterHeader ViewModel="@ViewModel" />
 
-        <div class="hz-slots" style="grid-template-columns: repeat(@Math.Max(1, slots.Count), minmax(0, 1fr));">
+        <div class="hz-slots" data-meter-list="4" style="grid-template-columns: repeat(@Math.Max(1, slots.Count), minmax(0, 1fr));">
             @foreach (var player in slots)
             {
-                <div class="hz-slot @ViewModel.GetIsUserClass(player)" title="@player.TotalDamageFormatted" @onclick="() => ViewModel.OpenPlayerDetails(player)">
+                <div data-meter-row class="hz-slot @ViewModel.GetIsUserClass(player)" title="@player.TotalDamageFormatted" @onclick="() => ViewModel.OpenPlayerDetails(player)">
                     <div class="hz-bar @ViewModel.GetPlayerRowClass(player)" style="width:@($"{ViewModel.ClampPercent(player.EffectivePercentage).ToString("0.##", CultureInfo.InvariantCulture)}%")"></div>
                     <div class="hz-data">
                         <div class="hz-line">

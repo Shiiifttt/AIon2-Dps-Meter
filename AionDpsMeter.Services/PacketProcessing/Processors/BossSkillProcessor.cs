@@ -1,4 +1,5 @@
 using AionDpsMeter.Services.PacketProcessing.Routing;
+using Microsoft.Extensions.Logging;
 using AionDpsMeter.Services.PacketProcessing.Shared;
 using AionDpsMeter.Services.Services.BossPatterns;
 using AionDpsMeter.Services.Services.Entity;
@@ -12,7 +13,7 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
     // when it finishes; "finished" (06 38) comes after that and isn't needed.
     [PacketOpcode(PacketOpcodes.SkillCast)]
     [PacketOpcode(PacketOpcodes.SkillUse)]
-    public sealed class BossSkillProcessor(EntityTracker entityTracker, BossPatternTracker patterns) : IOpcodeProcessor
+    public sealed class BossSkillProcessor(EntityTracker entityTracker, BossPatternTracker patterns, ILogger<BossSkillProcessor> logger) : IOpcodeProcessor
     {
         private const int MaxCastMs = 60_000;
 
@@ -23,11 +24,23 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
             var opcode = reader.ReadU16();
 
             var entityId = (int)reader.ReadVarInt();
-            if (entityTracker.GetTargetMob(entityId) is not { IsBoss: true } mob) return;
+            if (entityTracker.GetTargetMob(entityId) is not { } mob) return;
 
             reader.ReadU8();
             var skillCode = (int)reader.ReadU32();
             var at = packet.ReceivedAtUtc;
+
+            // Spawn packet missed (meter started after it came into range): a skill only one boss
+            // uses tells us which boss this is - name, Boss Only, records and pattern timers then work.
+            // (The pattern table only holds boss skills; players are excluded since PvP makes them targets too.)
+            if (mob.MobCode == 0 && entityTracker.GetPlayerEntity(entityId) is null
+                && patterns.OnlyBossWithSkill(skillCode) is { } bossCode)
+            {
+                entityTracker.CreateOrUpdateTargetEntity(entityId, bossCode);
+                logger.LogInformation("Recognised {Boss} ({MobCode}) from its skill {Skill}; its spawn packet was missed",
+                    mob.Name, bossCode, skillCode);
+            }
+            if (!mob.IsBoss) return;
 
             if (opcode == PacketOpcodes.SkillUse)
             {

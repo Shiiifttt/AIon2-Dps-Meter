@@ -24,6 +24,9 @@ namespace AionDpsMeter.Services.Services.Entity
         // Fired when the local character is known: (name, server name, which may be empty)
         public event Action<string, string>? UserIdentified;
 
+        /// <summary>You were recognised (login packet or skill cooldowns), named or not. The login packet comes again on every zone change.</summary>
+        public event Action<Player>? UserRecognised;
+
         public List<Player> PlayerEntities => sessionPlayers.Values.ToList();
         public List<Mob> TargetEntities => targetEntities.Values.ToList();
         public int PlayerEntityCount => sessionPlayers.Count;
@@ -67,6 +70,7 @@ namespace AionDpsMeter.Services.Services.Entity
             if (!sessionPlayers.TryGetValue(sessionId, out var player)) return;
             player.IsUser = true;
             if (player.IsIdentified) UserIdentified?.Invoke(player.Name, player.ServerName);
+            UserRecognised?.Invoke(player);
         }
 
 
@@ -161,6 +165,7 @@ namespace AionDpsMeter.Services.Services.Entity
             if (isUser) SetCurrentUser(name);
             TryFallbackLinkByName(name);
             if (isUser) UserIdentified?.Invoke(name, player.ServerName);
+            if (isUser) UserRecognised?.Invoke(player);
         }
 
         public Player? GetPlayerEntity(int sessionId) => sessionPlayers.GetValueOrDefault(sessionId);

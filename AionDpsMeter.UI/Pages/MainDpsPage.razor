@@ -28,6 +28,33 @@ else
     [Inject] private IWindowManagerService WindowManager { get; set; } = null!;
     [Inject] private WindowHelper WindowHelper { get; set; } = null!;
     [Inject] private BossPatternTracker BossPatterns { get; set; } = null!;
+    [Inject] private MeterLayoutMetrics LayoutMetrics { get; set; } = null!;
+    [Inject] private Microsoft.JSInterop.IJSRuntime JS { get; set; } = null!;
+
+    private sealed record LayoutMeasure(int Layout, double Header, double Bottom, double Pitch, double RowHeight);
+
+    // The meter re-renders many times a second; measuring its layout now and then is plenty.
+    private static readonly TimeSpan MeasureInterval = TimeSpan.FromMilliseconds(1500);
+    private DateTime _lastMeasure = DateTime.MinValue;
+    private int _measuredStyle;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Measure straight away after a layout switch, so the window can be fitted to it.
+        if (UiStyle == _measuredStyle && DateTime.UtcNow - _lastMeasure < MeasureInterval) return;
+        _lastMeasure = DateTime.UtcNow;
+        _measuredStyle = UiStyle;
+        try
+        {
+            var m = await JS.InvokeAsync<LayoutMeasure?>("aionMeter.measure", Array.Empty<object>());
+            if (m is not null && m.Layout == UiStyle)
+                LayoutMetrics.Report(m.Layout, m.Header, m.Bottom, m.Pitch, m.RowHeight);
+        }
+        catch (Exception)
+        {
+            // The page can be going away (closing, reloading); try again next time.
+        }
+    }
 
     private int UiStyle => SettingsService.UiStyle;
 

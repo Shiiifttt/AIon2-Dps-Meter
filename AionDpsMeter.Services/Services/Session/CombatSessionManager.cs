@@ -255,8 +255,11 @@ namespace AionDpsMeter.Services.Services.Session
                 {            
                     if (settingsService.BossOnlyCapture)
                     {
+                        // Code 0 = its spawn packet was missed (the meter started or synced after it came
+                        // into range, e.g. mid-fight). It may well be the boss, so it counts until the
+                        // boss's own skills give its code away (BossSkillProcessor).
                         var mob = entityTracker.GetTargetMob(damageEvent.TargetEntity.Id) ?? damageEvent.TargetEntity;
-                        if (!mob.IsBoss) return;
+                        if (!mob.IsBoss && mob.MobCode != 0) return;
                     }
 
                     if (entityTracker.IsSummon(damageEvent.SourceEntity.Id) &&

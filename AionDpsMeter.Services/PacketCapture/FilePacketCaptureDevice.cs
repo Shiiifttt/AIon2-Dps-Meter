@@ -18,6 +18,11 @@ namespace AionDpsMeter.Services.PacketCapture
         public event EventHandler<TcpPacketEventArgs>? PacketReceived;
 
         public bool IsCapturing => isCapturing;
+        public CaptureStatus Status => new(CaptureState.Locked);
+#pragma warning disable CS0067 // a replay never loses the game
+        public event Action<CaptureStatus>? StatusChanged;
+#pragma warning restore CS0067
+        public void Resync() { }
         public string? DeviceName => "FilePacketCapture";
         public string? DeviceDescription => $"Replaying packets from: {filePath}";
         private readonly TcpStreamBuffer tcpStreamBuffer;

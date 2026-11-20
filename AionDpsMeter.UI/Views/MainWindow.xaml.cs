@@ -18,19 +18,22 @@ namespace AionDpsMeter.UI.Views
         private DispatcherTimer? _saveBoundsTimer;
         private readonly DispatcherTimer _hoverWatchTimer;
         private bool _cursorWasOver;
-        // The layout the window is sized for; each layout remembers its own size.
+        // The layout the window is sized for (see ApplyLayoutSwitch).
         private int _layoutStyle;
         private GlobalHotkey? _globalHotkey;
         private readonly IWindowManagerService windowManager;
         private readonly WindowHelper windowHelper;
+        private readonly MeterLayoutMetrics layoutMetrics;
 
-        public MainWindow(MainViewModel viewModel, IAppSettingsService settingsService, IWindowManagerService windowManager, WindowHelper windowHelper)
+        public MainWindow(MainViewModel viewModel, IAppSettingsService settingsService, IWindowManagerService windowManager, WindowHelper windowHelper, MeterLayoutMetrics layoutMetrics)
         {
             InitializeComponent();
             DataContext = viewModel;
             this.settingsService      = settingsService;
             this.windowManager = windowManager;
             this.windowHelper = windowHelper;
+            this.layoutMetrics = layoutMetrics;
+            layoutMetrics.Measured += (style, metrics) => Dispatcher.InvokeAsync(() => OnLayoutMeasured(style, metrics));
 
             _saveBoundsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(5000) };
             _saveBoundsTimer.Tick += (_, _) => { _saveBoundsTimer.Stop(); SaveWindowBounds(); };
@@ -120,25 +123,54 @@ namespace AionDpsMeter.UI.Views
             };
         }
 
-        // Layouts need very different sizes (Ultra Compact is a strip, Standard a panel), so keep the size
-        // the meter had in the layout being left, and bring back the one it had in the new layout.
-        // A layout not used before keeps the current size. The top-left corner stays put.
+        // Switching layouts keeps about the same number of bars on screen: if Ultra Compact showed ~5.5 rows,
+        // Standard is made tall enough for ~5.5 of its (taller) rows. The width follows each layout's shape
+        // (Ultra Compact a bit narrower, Horizontal a wide strip). The top-left corner stays put.
         private void ApplyLayoutSwitch()
         {
             int style = settingsService.UiStyle;
-            if (style == _layoutStyle) return;
-
-            if (WindowState == WindowState.Normal)
-                settingsService.SetMeterSize(_layoutStyle, Width, Height);
+            int previous = _layoutStyle;
+            if (style == previous) return;
             _layoutStyle = style;
             ApplyLayoutMinSize();
+            if (WindowState != WindowState.Normal) return;
 
-            if (WindowState != WindowState.Normal || !settingsService.TryGetMeterSize(style, out var width, out var height))
+            // Horizontal shows one row of slots; going back, bring back the bar count from before it.
+            double bars = previous == MeterLayoutMetrics.Horizontal
+                ? _barsBeforeHorizontal
+                : layoutMetrics.BarsFitting(previous, Height);
+            if (style == MeterLayoutMetrics.Horizontal && previous != MeterLayoutMetrics.Horizontal)
+                _barsBeforeHorizontal = bars;
+
+            double width = Width * MeterLayoutMetrics.WidthFactor(style) / MeterLayoutMetrics.WidthFactor(previous);
+            SetMeterSize(width, layoutMetrics.HeightFor(style, bars));
+            // The new layout may not have been measured yet (estimates); correct once it has.
+            _pendingFit = (style, bars, Width, Height, DateTime.UtcNow + PendingFitWindow);
+        }
+
+        private static readonly TimeSpan PendingFitWindow = TimeSpan.FromSeconds(20);
+        private (int Style, double Bars, double Width, double Height, DateTime Until)? _pendingFit;
+        private double _barsBeforeHorizontal = 5;
+
+        private void OnLayoutMeasured(int style, MeterLayoutMetrics.Metrics _)
+        {
+            if (_pendingFit is not { } fit || fit.Style != style || style != _layoutStyle) return;
+            // Give up once the user has resized it themselves, or it's been a while.
+            if (DateTime.UtcNow > fit.Until || WindowState != WindowState.Normal
+                || Math.Abs(Width - fit.Width) > 0.5 || Math.Abs(Height - fit.Height) > 0.5)
+            {
+                _pendingFit = null;
                 return;
+            }
+            SetMeterSize(Width, layoutMetrics.HeightFor(style, fit.Bars));
+            _pendingFit = fit with { Height = Height };
+        }
 
-            Width = Math.Max(MinWidth, width);
-            Height = Math.Max(MinHeight, height);
+        private void SetMeterSize(double width, double height)
+        {
             var wa = ScreenHelper.GetWorkingAreaForPoint(Left, Top);
+            Width = Math.Round(Math.Clamp(width, MinWidth, Math.Max(MinWidth, wa.Width)));
+            Height = Math.Round(Math.Clamp(height, MinHeight, Math.Max(MinHeight, wa.Height)));
             Left = Math.Max(wa.Left, Math.Min(Left, wa.Right - Width));
             Top = Math.Max(wa.Top, Math.Min(Top, wa.Bottom - Height));
         }
@@ -158,8 +190,6 @@ namespace AionDpsMeter.UI.Views
             var top    = settingsService.WindowTop;
             var width  = settingsService.WindowWidth;
             var height = settingsService.WindowHeight;
-            if (settingsService.TryGetMeterSize(_layoutStyle, out var layoutWidth, out var layoutHeight))
-                (width, height) = (layoutWidth, layoutHeight);
 
             if (!left.HasValue || !top.HasValue)
                 return;
@@ -187,7 +217,6 @@ namespace AionDpsMeter.UI.Views
             settingsService.WindowTop    = Top;
             settingsService.WindowWidth  = Width;
             settingsService.WindowHeight = Height;
-            settingsService.SetMeterSize(_layoutStyle, Width, Height);
         }
 
 

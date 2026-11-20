@@ -19,6 +19,7 @@ namespace AionDpsMeter.Services.Services.Settings
         bool TrackPetCollection { get; set; }
         /// <summary>Popup for nearby monsters that drop souls for unfinished pets, and for soul pickups. Needs TrackPetCollection.</summary>
         bool ShowPetAlerts { get; set; }
+        bool ShowSyncPopup { get; set; }
         int HistoryRetantionPeriod { get; set; }
         double WindowOpacity { get; set; }
         string? BackgroundImagePath { get; set; }
@@ -33,9 +34,9 @@ namespace AionDpsMeter.Services.Services.Settings
         double? WindowHeight { get; set; }
         double PlayerRowScale { get; set; }
         int UiStyle { get; set; }
-        /// <summary>Width and height the meter had in this layout, if it has been used.</summary>
-        bool TryGetMeterSize(int uiStyle, out double width, out double height);
-        void SetMeterSize(int uiStyle, double width, double height);
+        /// <summary>Measured sizes of a meter layout (see MeterLayoutMetrics in the UI), or null if never measured.</summary>
+        double[]? GetMeterLayoutMetrics(int uiStyle);
+        void SetMeterLayoutMetrics(int uiStyle, double[] metrics);
         bool HistoryHideNonClears { get; set; }
 
         public bool UseClassColors { get; set; }
