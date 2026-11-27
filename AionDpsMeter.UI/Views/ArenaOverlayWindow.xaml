@@ -1,0 +1,109 @@
+<Window x:Class="AionDpsMeter.UI.Views.ArenaOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Arena overlay"
+        Width="290"
+        SizeToContent="Height"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+        <DataTemplate x:Key="ArenaRowTemplate">
+            <Grid Height="19" Margin="0,1,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="18"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="62"/>
+                    <ColumnDefinition Width="86"/>
+                </Grid.ColumnDefinitions>
+
+                <Image Grid.Column="0" Width="15" Height="15" HorizontalAlignment="Left"
+                       Source="{Binding ClassIcon, Converter={StaticResource SafeImageSourceConverter}}"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                <TextBlock x:Name="NameText" Grid.Column="1" Text="{Binding Name}"
+                           FontSize="11" Foreground="{StaticResource PrimaryTextBrush}"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+
+                <TextBlock x:Name="CpText" Grid.Column="2" Text="{Binding CpText}"
+                           FontSize="10" FontFamily="{StaticResource MeterMonoFont}"
+                           Foreground="#E3B341" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0"/>
+
+                <Border Grid.Column="3" Background="#33000000" BorderBrush="#40FFFFFF" BorderThickness="1" CornerRadius="2" ClipToBounds="True">
+                    <Grid>
+                        <Border x:Name="HpFill" Background="#3FB950" HorizontalAlignment="Stretch" RenderTransformOrigin="0,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="{Binding HpFraction}" ScaleY="1"/>
+                            </Border.RenderTransform>
+                        </Border>
+                        <TextBlock x:Name="HpText" Text="{Binding HpText}"
+                                   FontSize="10" FontWeight="SemiBold" FontFamily="{StaticResource MeterMonoFont}"
+                                   Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock.Effect>
+                                <DropShadowEffect ShadowDepth="0" BlurRadius="3" Color="Black" Opacity="1"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsEnemy}" Value="True">
+                    <Setter TargetName="HpFill" Property="Background" Value="#DA3633"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsSelf}" Value="True">
+                    <Setter TargetName="NameText" Property="Foreground" Value="#7EE787"/>
+                    <Setter TargetName="NameText" Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsDead}" Value="True">
+                    <Setter TargetName="NameText" Property="Foreground" Value="#6E7681"/>
+                    <Setter TargetName="CpText" Property="Foreground" Value="#6E7681"/>
+                    <Setter TargetName="HpText" Property="Foreground" Value="#FF7B72"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <StackPanel VerticalAlignment="Top">
+        <!-- Shown while Settings is open, so there's something to drag into place -->
+        <Border x:Name="EditHint"
+                Visibility="Collapsed"
+                Background="#E6161B22"
+                BorderBrush="#7EE787" BorderThickness="1"
+                CornerRadius="6" Padding="10,8" Margin="0,0,0,6"
+                Cursor="SizeAll">
+            <StackPanel>
+                <TextBlock Text="Arena overlay" FontSize="12" FontWeight="Bold" Foreground="#7EE787"/>
+                <TextBlock Text="Drag to move. Shows everyone in the arena with their CP and HP while you're in one."
+                           FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Border x:Name="Card"
+                Visibility="{Binding IsActive, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Background="#D9161B22"
+                BorderBrush="#30363D" BorderThickness="1"
+                CornerRadius="6" Padding="8,6">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding AllyHeader}" FontSize="9" FontWeight="Bold" Foreground="#7EE787"/>
+                    <TextBlock Text="{Binding AllyAverageCp}" FontSize="9" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right"/>
+                </DockPanel>
+                <ItemsControl ItemsSource="{Binding Allies}" ItemTemplate="{StaticResource ArenaRowTemplate}"/>
+
+                <StackPanel Visibility="{Binding HasTeams, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,6,0,0">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding EnemyHeader}" FontSize="9" FontWeight="Bold" Foreground="#FF7B72"/>
+                        <TextBlock Text="{Binding EnemyAverageCp}" FontSize="9" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right"/>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding Enemies}" ItemTemplate="{StaticResource ArenaRowTemplate}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</Window>

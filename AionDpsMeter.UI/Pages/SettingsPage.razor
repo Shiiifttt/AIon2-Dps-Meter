@@ -151,6 +151,12 @@
                 </ValueSlot>
             </SettingRow>
 
+            <SettingRow Title="Arena Overlay" Description="While you're in an arena: your team and the other team, with each player's CP and live HP. Drag it where you want it while Settings is open">
+                <ValueSlot>
+                    <ToggleSwitch Checked="settings.ShowArenaOverlay" CheckedChanged="v => { settings.ShowArenaOverlay = v; }" />
+                </ValueSlot>
+            </SettingRow>
+
             <SettingRow Title="Track Pet Collection" Description="Counts pet souls and ranks per character; open it from the tray menu. Log into your character after turning this on to load your collection">
                 <ValueSlot>
                     <ToggleSwitch Checked="settings.TrackPetCollection" CheckedChanged="v => { settings.TrackPetCollection = v; }" />

@@ -40,6 +40,65 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
             return false;
         }
 
+        // In 3336 and 4536 the HP block is: <varint hp> <varint max hp> <u32 mp> <u32 max mp> <8 bytes>
+        // <u32> <u32> <u32> <u32> <u32 1|2> <u32 100000> <u32 100000>. The bytes before it vary
+        // (position, flags), so it's found from the 100000 pair and read backwards.
+        private static readonly byte[] HpBlockAnchor = [0xA0, 0x86, 0x01, 0x00, 0xA0, 0x86, 0x01, 0x00];
+        private const int HpBlockAnchorToMp = 36;
+        private const int HpBlockSearchWindow = 400; // 3336 has ~220 bytes between the name and the HP block
+
+        /// <summary>Current and max HP from a player info packet (3336 / 4536), searched for after the name.</summary>
+        protected static bool TryReadHp(byte[] data, int searchStart, out long hpCurrent, out long hpMax)
+        {
+            hpCurrent = hpMax = 0;
+            if (searchStart < 0 || searchStart >= data.Length) return false;
+
+            int windowLen = Math.Min(HpBlockSearchWindow, data.Length - searchStart);
+            int found = data.AsSpan(searchStart, windowLen).IndexOf(HpBlockAnchor);
+            if (found < 0) return false;
+
+            int mpOffset = searchStart + found - HpBlockAnchorToMp;
+            if (mpOffset < searchStart + 2) return false;
+
+            if (!TryReadVarIntBackwards(data, mpOffset, searchStart, out long max, out int maxStart)) return false;
+            if (!TryReadVarIntBackwards(data, maxStart, searchStart, out long cur, out _)) return false;
+            if (max <= 0 || max > 50_000_000 || cur < 0) return false;
+
+            hpCurrent = Math.Min(cur, max);
+            hpMax = max;
+            return true;
+        }
+
+        /// <summary>Reads the varint that ends right before <paramref name="end"/>.</summary>
+        private static bool TryReadVarIntBackwards(byte[] data, int end, int floor, out long value, out int start)
+        {
+            value = 0;
+            start = end - 1;
+            if (start < floor || (data[start] & 0x80) != 0) return false;
+            while (start - 1 >= floor && (data[start - 1] & 0x80) != 0 && end - start < 5) start--;
+
+            int shift = 0;
+            for (int i = start; i < end; i++, shift += 7)
+                value |= (long)(data[i] & 0x7F) << shift;
+            return true;
+        }
+
+        /// <summary>
+        /// 4536 ends with <u32 small> <u64 combat power> and one or two more bytes.
+        /// </summary>
+        protected static int ReadTrailingCombatPower(byte[] data)
+        {
+            for (int back = 9; back <= 12; back++)
+            {
+                int offset = data.Length - back;
+                if (offset < 4) break;
+                ulong cp = data.ReadUInt64Le(offset);
+                uint before = (uint)data.ReadUInt32Le(offset - 4);
+                if (cp >= MinCombatPower && cp <= MaxCombatPower && before < 256) return (int)cp;
+            }
+            return 0;
+        }
+
         protected NameReadResult? ReadPlayerName(byte[] data, int start, int endOffset)
         {
 

@@ -1,21 +1,26 @@
-﻿using AionDpsMeter.Core.Data;
+using AionDpsMeter.Core.Data;
 using AionDpsMeter.Services.Extensions;
 using AionDpsMeter.Services.PacketProcessing.Routing;
+using AionDpsMeter.Services.Services.Arena;
 using AionDpsMeter.Services.Services.Entity;
 
 namespace AionDpsMeter.Services.PacketProcessing.Processors
 {
     [PacketOpcode(PacketOpcodes.OtherPlayersInfo)]
-    internal class OtherPlayerInfoProcessor(EntityTracker entityTracker) : BasePlayerInfoProcessor, IOpcodeProcessor
+    internal class OtherPlayerInfoProcessor(EntityTracker entityTracker, ArenaTracker arenaTracker) : BasePlayerInfoProcessor, IOpcodeProcessor
     {
         public void Process(Packet packet)
         {
-            if (!TryParseInfo(packet.Data, out PlayerInfoResult result)) return;
-            entityTracker.SetSessionPlayerName(result.EntityId, result.Name, 0, ServerMap.GetName(result.ServerId));
+            if (!TryParseInfo(packet.Data, out PlayerInfoResult result, out int nameEnd)) return;
+            entityTracker.SetSessionPlayerName(result.EntityId, result.Name, result.CombatPower, ServerMap.GetName(result.ServerId));
+
+            TryReadHp(packet.Data, nameEnd, out long hp, out long hpMax);
+            arenaTracker.OnPlayerInfo(result.EntityId, result.Name, result.CombatPower, hp, hpMax, isSelf: false);
         }
-        private bool TryParseInfo(byte[] data, out PlayerInfoResult result)
+        private bool TryParseInfo(byte[] data, out PlayerInfoResult result, out int nameEnd)
         {
             result = default;
+            nameEnd = 0;
             var endOffset = data.Length;
             var pos = data.ReadVarInt().Length + 2;
             if (pos >= endOffset) return false;
@@ -28,13 +33,14 @@ namespace AionDpsMeter.Services.PacketProcessing.Processors
             if (!nameRead.HasValue) return false;
 
             int afterNameOffset = nameRead.Value.EndOffset;
+            nameEnd = afterNameOffset;
             int jobCode = -1;
             var jobCodeVarInt = data.ReadVarInt(afterNameOffset);
             if (jobCodeVarInt.Value < 1) jobCode = jobCodeVarInt.Value;
             else afterNameOffset += jobCodeVarInt.Length;
 
             int serverId = FindServerId(data, afterNameOffset, endOffset, ServerMap.Servers.Keys.ToHashSet());
-            result = new PlayerInfoResult(entityId, nameRead.Value.Name, serverId, jobCode, 0);
+            result = new PlayerInfoResult(entityId, nameRead.Value.Name, serverId, jobCode, ReadTrailingCombatPower(data));
             return true;
         }
     }

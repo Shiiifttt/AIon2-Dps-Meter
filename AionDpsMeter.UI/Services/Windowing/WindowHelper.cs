@@ -24,6 +24,7 @@ namespace AionDpsMeter.UI.Services.Windowing
         private bool IsPetAlertEnabled => settingsService.TrackPetCollection && settingsService.ShowPetAlerts;
         private bool _petAlertOpen;
         private bool _syncPopupOpen;
+        private bool _arenaOverlayOpen;
         private bool IsMainClickThrough { get; set; }
 
         // Holding the configured key inverts click-through for as long as it's held. A key-up can't be
@@ -91,6 +92,7 @@ namespace AionDpsMeter.UI.Services.Windowing
 
             ManagePetAlert();
             ManageSyncPopup();
+            ManageArenaOverlay();
 
             UpdateHoldKeyPolling();
         }
@@ -103,6 +105,7 @@ namespace AionDpsMeter.UI.Services.Windowing
             windowManager.SetClickThrough(WindowKey.SkillCdOverlay);
             ManagePetAlert();
             ManageSyncPopup();
+            ManageArenaOverlay();
             ApplyMainClickThrough();
             UpdateHoldKeyPolling();
         }
@@ -187,8 +190,8 @@ namespace AionDpsMeter.UI.Services.Windowing
         {
             _windowsHiddenWithMeter = Application.Current.Windows.OfType<Window>()
                 .Where(window => window.IsVisible)
-                // The pet and sync popups are their own thing; they keep working while the meter is in the tray.
-                .Where(window => window is not PetAlertWindow and not SyncStatusWindow)
+                // The pet and sync popups and the arena overlay are their own thing; they keep working while the meter is in the tray.
+                .Where(window => window is not PetAlertWindow and not SyncStatusWindow and not ArenaOverlayWindow)
                 .ToList();
 
             foreach (var window in _windowsHiddenWithMeter)
@@ -221,6 +224,7 @@ namespace AionDpsMeter.UI.Services.Windowing
             windowManager.RestoreClickThrough(WindowKey.SkillCdOverlay);
             SetPetAlertEditMode(true);
             SetSyncPopupEditMode(true);
+            SetArenaOverlayEditMode(true);
             WindowStateUpdated?.Invoke(this, EventArgs.Empty);
             var win = new BlazorWindow(App.AppHost.Services, typeof(SettingsPage))
             {
@@ -237,6 +241,7 @@ namespace AionDpsMeter.UI.Services.Windowing
             windowManager.SetClickThrough(WindowKey.BuffOverlay);
             SetPetAlertEditMode(false);
             SetSyncPopupEditMode(false);
+            SetArenaOverlayEditMode(false);
             windowManager.SetClickThrough(WindowKey.SkillCdOverlay);
             WindowStateUpdated?.Invoke(this, EventArgs.Empty);
             windowManager.Hide(WindowKey.Settings);
@@ -383,6 +388,29 @@ namespace AionDpsMeter.UI.Services.Windowing
             if (editing) windowManager.RestoreClickThrough(WindowKey.SyncStatus);
             else windowManager.SetClickThrough(WindowKey.SyncStatus);
             foreach (var popup in Application.Current.Windows.OfType<SyncStatusWindow>()) popup.SetEditMode(editing);
+        }
+
+        private void ManageArenaOverlay()
+        {
+            if (settingsService.ShowArenaOverlay == _arenaOverlayOpen) return;
+            _arenaOverlayOpen = settingsService.ShowArenaOverlay;
+            if (_arenaOverlayOpen)
+            {
+                windowManager.Open(WindowKey.ArenaOverlay, new ArenaOverlayWindow(), true, persistenceMode: WindowPersistenceMode.OnlyPosition);
+                SetArenaOverlayEditMode(windowManager.IsOpen(WindowKey.Settings));
+            }
+            else
+            {
+                windowManager.Close(WindowKey.ArenaOverlay);
+            }
+        }
+
+        private void SetArenaOverlayEditMode(bool editing)
+        {
+            if (!_arenaOverlayOpen) return;
+            if (editing) windowManager.RestoreClickThrough(WindowKey.ArenaOverlay);
+            else windowManager.SetClickThrough(WindowKey.ArenaOverlay);
+            foreach (var overlay in Application.Current.Windows.OfType<ArenaOverlayWindow>()) overlay.SetEditMode(editing);
         }
     }
 }

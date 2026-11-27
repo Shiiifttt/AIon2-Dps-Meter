@@ -2,6 +2,7 @@
 using AionDpsMeter.Services.Models;
 using AionDpsMeter.Services.PacketCapture;
 using AionDpsMeter.Services.Services;
+using AionDpsMeter.Services.Services.Arena;
 using AionDpsMeter.Services.Services.BossPatterns;
 using AionDpsMeter.Services.Services.Entity;
 using AionDpsMeter.Services.Services.Pets;
@@ -72,6 +73,7 @@ namespace AionDpsMeter.UI
                     services.AddSingleton<PetCollectionTracker>();
                     services.AddSingleton<PetAlertService>();
                     services.AddSingleton<MeterSyncMonitor>();
+                    services.AddSingleton<ArenaTracker>();
                     services.AddKeyedSingleton<ITimedEventTracker, BuffTimedEventTracker>("Buffs");
                     services.AddKeyedSingleton<ITimedEventTracker, SkillCdTimedEventTracker>("SkillCd");
                     services.AddSingleton<CombatSessionManager>();

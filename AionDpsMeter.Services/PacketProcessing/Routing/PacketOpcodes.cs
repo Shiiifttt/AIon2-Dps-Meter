@@ -27,4 +27,7 @@ public static class PacketOpcodes
     public const ushort PetSoulsGained = 0x900D;      // 0D 90
     public const ushort PetSoulsSpent = 0x900E;       // 0E 90
     public const ushort PetRankChanged = 0x9014;      // 14 90
+    public const ushort MapChanged = 0x3621;          // 21 36
+    public const ushort MapEvent = 0x922E;            // 2E 92
+    public const ushort GroupRoster = 0x9200;         // 00 92
 }

@@ -20,6 +20,8 @@ namespace AionDpsMeter.Services.Services.Settings
         /// <summary>Popup for nearby monsters that drop souls for unfinished pets, and for soul pickups. Needs TrackPetCollection.</summary>
         bool ShowPetAlerts { get; set; }
         bool ShowSyncPopup { get; set; }
+        /// <summary>Players in the arena with their CP and HP, shown only while you are in an arena.</summary>
+        bool ShowArenaOverlay { get; set; }
         int HistoryRetantionPeriod { get; set; }
         double WindowOpacity { get; set; }
         string? BackgroundImagePath { get; set; }

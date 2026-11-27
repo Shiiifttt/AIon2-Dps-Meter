@@ -372,6 +372,22 @@ namespace AionDpsMeter.Services.Services.Settings
             }
         }
 
+        public bool ShowArenaOverlay
+        {
+            get { lock (_lock) return _data.ShowArenaOverlay; }
+            set
+            {
+                bool changed;
+                lock (_lock)
+                {
+                    changed = _data.ShowArenaOverlay != value;
+                    _data.ShowArenaOverlay = value;
+                    if (changed) Save();
+                }
+                if (changed) SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         public bool IsPacketLoggingEnabled
         {
             get { lock (_lock) return _data.IsPacketLoggingEnabled; }
@@ -719,6 +735,9 @@ namespace AionDpsMeter.Services.Services.Settings
 
             [JsonPropertyName("showSyncPopup")]
             public bool ShowSyncPopup { get; set; } = true;
+
+            [JsonPropertyName("showArenaOverlay")]
+            public bool ShowArenaOverlay { get; set; } = true;
 
             [JsonPropertyName("historyHideNonClears")]
             public bool HistoryHideNonClears { get; set; }
